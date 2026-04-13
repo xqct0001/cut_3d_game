@@ -7,6 +7,8 @@ build/
 dist/
 release/
 
+profiles/app-state.json
+
 *.log
 *.obj
 *.o
@@ -16,4 +18,3 @@ release/
 *.pch
 *.tmp
 *.temp
-
