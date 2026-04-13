@@ -1,0 +1,629 @@
+#include "app_controller.h"
+
+#include <QAction>
+#include <QApplication>
+#include <QCoreApplication>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QMenu>
+#include <QQuickWindow>
+#include <QStyle>
+#include <QSystemTrayIcon>
+#include <QTimer>
+
+#include <cmath>
+
+namespace {
+
+constexpr float kTau = 6.28318530717958647692f;
+
+QString legacyAppStatePath()
+{
+    return QDir(QCoreApplication::applicationDirPath()).filePath("profiles/app-state.json");
+}
+
+QString extractExeName(const QString &statusText)
+{
+    auto takePayload = [&statusText](const QString &prefix) {
+        if (!statusText.startsWith(prefix)) {
+            return QString();
+        }
+        const QString payload = statusText.mid(prefix.size());
+        return payload.section(" - ", 0, 0).toLower();
+    };
+
+    for (const QString &prefix : {
+             QStringLiteral("Active: "),
+             QStringLiteral("Unsupported ratio: "),
+             QStringLiteral("Unsupported window: "),
+             QStringLiteral("Window detected but no matched profile: "),
+             QStringLiteral("Bind failed: "),
+         }) {
+        const QString value = takePayload(prefix);
+        if (!value.isEmpty()) {
+            return value;
+        }
+    }
+    return QString();
+}
+
+void appendUnique(QStringList &list, const QString &value)
+{
+    const QString normalized = value.trimmed().toLower();
+    if (!normalized.isEmpty() && !list.contains(normalized)) {
+        list.append(normalized);
+    }
+}
+
+QString normalizePattern(const QString &value)
+{
+    const QString normalized = value.trimmed().toLower();
+    if (normalized == "dynamic" || normalized == "regular") {
+        return normalized;
+    }
+    return "dynamic";
+}
+
+QString normalizeVisibility(const QString &value)
+{
+    const QString normalized = value.trimmed().toLower();
+    if (normalized == "standard" || normalized == "larger_dots" || normalized == "more_dots") {
+        return normalized;
+    }
+    return "standard";
+}
+
+QString normalizeLanguage(const QString &value)
+{
+    return value.trimmed().toLower() == "zh" ? "zh" : "en";
+}
+
+QIcon resolveAppIcon(QApplication *app)
+{
+    QIcon icon(":/src/comfort_cues/ui/assets/comfort-cues.ico");
+    if (!icon.isNull()) {
+        return icon;
+    }
+    icon = QIcon(":/src/comfort_cues/ui/assets/tray-dog.ico");
+    if (!icon.isNull()) {
+        return icon;
+    }
+    return app != nullptr ? app->style()->standardIcon(QStyle::SP_ComputerIcon) : QIcon();
+}
+
+QString smokeProgressPath()
+{
+    const QString runtimePath = qEnvironmentVariable("CC_RUNTIME_PROGRESS_PATH");
+    if (!runtimePath.isEmpty()) {
+        return runtimePath;
+    }
+    return qEnvironmentVariable("CC_SMOKE_PROGRESS_PATH");
+}
+
+void appendRuntimeProgress(const QString &message)
+{
+    const QString path = smokeProgressPath();
+    if (path.isEmpty()) {
+        return;
+    }
+
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) {
+        return;
+    }
+
+    file.write(message.toUtf8());
+    file.write("\n");
+    file.close();
+}
+
+} // namespace
+
+AppController::AppController(QApplication *app, const QString &dataRoot, const QString &statePath, QObject *parent)
+    : QObject(parent)
+    , m_dataRoot(dataRoot.isEmpty() ? defaultDataRoot() : dataRoot)
+    , m_profilesDir(QDir(m_dataRoot).filePath("profiles"))
+    , m_appStatePath(statePath.isEmpty() ? defaultAppStatePath() : statePath)
+    , m_profileStore(m_profilesDir)
+    , m_app(app)
+    , m_inputSource(this)
+    , m_runtime(&m_tracker, &m_inputSource, &m_profileStore)
+{
+    const bool smokeMode = !qEnvironmentVariable("CC_SMOKE_TEST_OUTPUT").isEmpty();
+    appendRuntimeProgress("app_controller: constructor entered");
+    const QString legacyState = legacyAppStatePath();
+    if (QFileInfo::exists(m_appStatePath)) {
+        m_appState = loadAppState(m_appStatePath);
+    } else if (QFileInfo::exists(legacyState)) {
+        m_appState = loadAppState(legacyState);
+        saveAppState(m_appStatePath, m_appState);
+    } else {
+        m_appState = loadAppState(m_appStatePath);
+    }
+    appendRuntimeProgress("app_controller: app state ready");
+
+    ensureProfileTemplates(m_profilesDir);
+    appendRuntimeProgress("app_controller: profile templates ensured");
+    m_profileStore = ProfileStore::load(m_profilesDir);
+    appendRuntimeProgress("app_controller: profile store loaded");
+    m_selectedProfile = m_profileStore.cloneProfile(
+        m_profileStore.hasProfile("CS2") ? QStringLiteral("CS2") : m_profileStore.defaultProfile().name
+    );
+    appendRuntimeProgress(QString("app_controller: selected profile resolved (%1)").arg(m_selectedProfile.name));
+
+    if (!smokeMode) {
+        m_inputSource.start();
+    }
+    m_timer = new QTimer(this);
+    m_timer->setInterval(16);
+    connect(m_timer, &QTimer::timeout, this, &AppController::tick);
+
+    if (m_app != nullptr && !smokeMode) {
+        m_tray = new QSystemTrayIcon(resolveAppIcon(m_app), m_app);
+        auto *menu = new QMenu();
+        m_enableAction = menu->addAction("Enable");
+        m_disableAction = menu->addAction("Disable");
+        menu->addSeparator();
+        m_quitAction = menu->addAction("Quit");
+
+        connect(m_enableAction, &QAction::triggered, this, &AppController::enableApp);
+        connect(m_disableAction, &QAction::triggered, this, &AppController::disableApp);
+        connect(m_quitAction, &QAction::triggered, this, &AppController::quitApplication);
+        connect(m_tray, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
+            if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick) {
+                appendRuntimeProgress("app_controller: tray icon activated");
+                openSettings();
+            }
+        });
+        m_tray->setContextMenu(menu);
+        m_tray->show();
+    }
+
+    m_appEnabled = m_appState.appEnabled;
+    if (m_appEnabled) {
+        m_statusText = "Comfort Cues running in background.";
+    } else {
+        setDisabledView();
+    }
+    refreshTrayIcon();
+    m_elapsedTimer.start();
+    appendRuntimeProgress("app_controller: constructor complete");
+}
+
+void AppController::attachWindows(QQuickWindow *overlayWindow, QQuickWindow *settingsWindow)
+{
+    const bool smokeMode = !qEnvironmentVariable("CC_SMOKE_TEST_OUTPUT").isEmpty();
+    m_overlayWindow = overlayWindow;
+    m_settingsWindow = settingsWindow;
+    if (m_app != nullptr) {
+        const QIcon icon = resolveAppIcon(m_app);
+        m_app->setWindowIcon(icon);
+        if (m_settingsWindow != nullptr) {
+            m_settingsWindow->setIcon(icon);
+        }
+    }
+    if (!smokeMode) {
+        configureOverlayWindow(m_overlayWindow);
+    }
+    if (m_timer != nullptr && !smokeMode) {
+        m_timer->start();
+    }
+    if (m_settingsWindow != nullptr && !smokeMode) {
+        connect(m_settingsWindow, &QQuickWindow::visibleChanged, this, [this]() {
+            appendRuntimeProgress(QString("app_controller: settings window visible=%1")
+                                      .arg(m_settingsWindow != nullptr && m_settingsWindow->isVisible() ? "true" : "false"));
+        });
+    }
+    appendRuntimeProgress("app_controller: windows attached");
+}
+
+bool AppController::shouldShowWindowOnLaunch() const
+{
+    return !m_appState.launchToTray;
+}
+
+void AppController::completeFirstRun()
+{
+    if (m_appState.launchToTray) {
+        return;
+    }
+    m_appState.launchToTray = true;
+    persistAppState();
+    appendRuntimeProgress("app_controller: completed first-run persistence");
+}
+
+void AppController::setSelectedProfileName(const QString &value)
+{
+    if (!m_profileStore.hasProfile(value)) {
+        return;
+    }
+    m_selectedProfile = m_profileStore.cloneProfile(value);
+    emit profileChanged();
+}
+
+void AppController::setYawGain(float value)
+{
+    m_selectedProfile.yawGain = value;
+    emit profileChanged();
+}
+
+void AppController::setUiLanguage(const QString &value)
+{
+    const QString normalized = normalizeLanguage(value);
+    if (m_appState.uiLanguage == normalized) {
+        return;
+    }
+    m_appState.uiLanguage = normalized;
+    persistAppState();
+    refreshTrayIcon();
+    emit stateChanged();
+    appendRuntimeProgress(QString("app_controller: ui language=%1").arg(normalized));
+}
+
+void AppController::setPitchGain(float value)
+{
+    m_selectedProfile.pitchGain = value;
+    emit profileChanged();
+}
+
+void AppController::setDeadzone(float value)
+{
+    m_selectedProfile.deadzone = value;
+    emit profileChanged();
+}
+
+void AppController::setMaxOpacity(float value)
+{
+    m_selectedProfile.maxOpacity = value;
+    emit profileChanged();
+}
+
+void AppController::setFadeInMs(float value)
+{
+    m_selectedProfile.fadeInMs = value;
+    emit profileChanged();
+}
+
+void AppController::setFadeOutMs(float value)
+{
+    m_selectedProfile.fadeOutMs = value;
+    emit profileChanged();
+}
+
+void AppController::setEnableMouse(bool value)
+{
+    m_selectedProfile.enableMouse = value;
+    emit profileChanged();
+}
+
+void AppController::setEnableGamepad(bool value)
+{
+    m_selectedProfile.enableGamepad = value;
+    emit profileChanged();
+}
+
+void AppController::setSafeMode(bool value)
+{
+    m_selectedProfile.safeMode = value;
+    emit profileChanged();
+}
+
+void AppController::setCuePattern(const QString &value)
+{
+    m_selectedProfile.cuePattern = normalizePattern(value);
+    emit profileChanged();
+}
+
+void AppController::setCueVisibility(const QString &value)
+{
+    m_selectedProfile.cueVisibility = normalizeVisibility(value);
+    emit profileChanged();
+}
+
+void AppController::setDebugOverlayEnabled(bool value)
+{
+    m_debugOverlayEnabled = value;
+    emit stateChanged();
+    emit cueChanged();
+    appendRuntimeProgress(QString("app_controller: debug overlay=%1").arg(value ? "true" : "false"));
+}
+
+void AppController::setAdvancedVisible(bool value)
+{
+    m_advancedVisible = value;
+    emit stateChanged();
+    appendRuntimeProgress(QString("app_controller: advanced visible=%1").arg(value ? "true" : "false"));
+}
+
+void AppController::setSimulatorEnabled(bool value)
+{
+    m_runtime.simulation().enabled = value;
+    emit stateChanged();
+}
+
+void AppController::setSimYaw(float value)
+{
+    m_runtime.simulation().yaw = value;
+    emit stateChanged();
+}
+
+void AppController::setSimPitch(float value)
+{
+    m_runtime.simulation().pitch = value;
+    emit stateChanged();
+}
+
+void AppController::setSimLateral(float value)
+{
+    m_runtime.simulation().lateral = value;
+    emit stateChanged();
+}
+
+void AppController::openSettings()
+{
+    if (m_settingsWindow == nullptr) {
+        appendRuntimeProgress("app_controller: openSettings skipped (no settings window)");
+        return;
+    }
+    m_settingsWindow->show();
+    m_settingsWindow->raise();
+    m_settingsWindow->requestActivate();
+    appendRuntimeProgress("app_controller: settings window opened");
+}
+
+void AppController::reloadProfiles()
+{
+    const QString targetName = m_profileStore.hasProfile(m_selectedProfile.name)
+        ? m_selectedProfile.name
+        : m_profileStore.defaultProfile().name;
+    m_profileStore = ProfileStore::load(m_profilesDir);
+    m_selectedProfile = m_profileStore.cloneProfile(
+        m_profileStore.hasProfile(targetName) ? targetName : m_profileStore.defaultProfile().name
+    );
+    emit profilesChanged();
+    emit profileChanged();
+}
+
+void AppController::enableApp()
+{
+    m_appEnabled = true;
+    m_statusText = "Comfort Cues running in background.";
+    persistAppState();
+    refreshTrayIcon();
+    emit stateChanged();
+    appendRuntimeProgress("app_controller: app enabled");
+}
+
+void AppController::disableApp()
+{
+    m_appEnabled = false;
+    m_runtime.reset();
+    setDisabledView();
+    persistAppState();
+    refreshTrayIcon();
+    emit stateChanged();
+    emit cueChanged();
+    appendRuntimeProgress("app_controller: app disabled");
+}
+
+void AppController::saveSelectedProfile()
+{
+    const QString saved = m_profileStore.saveProfile(m_selectedProfile);
+    m_statusText = QString("Saved profile to %1").arg(QFileInfo(saved).fileName());
+    emit stateChanged();
+    emit profilesChanged();
+    appendRuntimeProgress(QString("app_controller: profile saved (%1)").arg(QFileInfo(saved).fileName()));
+}
+
+void AppController::bindCurrentWindow()
+{
+    const std::optional<WindowInfo> window = m_runtime.foregroundWindow();
+    if (!window.has_value()) {
+        m_statusText = "Bind failed: no foreground game window detected.";
+        emit stateChanged();
+        appendRuntimeProgress("app_controller: bind failed (no foreground game window)");
+        return;
+    }
+
+    m_activeWindowTitle = window->title;
+    m_activeWindowMode = window->mode;
+    m_activeExeName = window->exeName;
+    if (!window->supported) {
+        m_statusText = QString("Bind failed: %1 - %2").arg(window->exeName, window->reason);
+        emit stateChanged();
+        appendRuntimeProgress(QString("app_controller: bind failed (%1 - %2)").arg(window->exeName, window->reason));
+        return;
+    }
+
+    Profile profile = m_profileStore.hasProfile("CS2")
+        ? m_profileStore.cloneProfile("CS2")
+        : defaultCs2Profile(m_profilesDir);
+    appendUnique(profile.matchExe, window->exeName);
+    for (const QString &token : titleTokens(window->title)) {
+        appendUnique(profile.matchTitle, token);
+    }
+    profile.lastBoundExe = window->exeName.toLower();
+    profile.lastBoundTitle = window->title.toLower();
+    profile.filePath = QDir(m_profilesDir).filePath("cs2.toml");
+    m_profileStore.saveProfile(profile);
+    m_profileStore = ProfileStore::load(m_profilesDir);
+    m_selectedProfile = m_profileStore.cloneProfile("CS2");
+    m_statusText = QString("Bound current window to CS2 profile: %1").arg(window->exeName);
+    m_activeProfileName = "CS2";
+    emit profilesChanged();
+    emit profileChanged();
+    emit stateChanged();
+    appendRuntimeProgress(QString("app_controller: bind succeeded (%1)").arg(window->exeName));
+}
+
+void AppController::quitApplication()
+{
+    if (m_tray != nullptr) {
+        m_tray->hide();
+    }
+    if (m_app != nullptr) {
+        m_app->quit();
+    }
+    appendRuntimeProgress("app_controller: quit requested");
+}
+
+void AppController::resetSimulator()
+{
+    m_runtime.simulation().yaw = 0.0;
+    m_runtime.simulation().pitch = 0.0;
+    m_runtime.simulation().lateral = 0.0;
+    emit stateChanged();
+}
+
+void AppController::tick()
+{
+    if (!m_appEnabled) {
+        setDisabledView();
+        emit stateChanged();
+        emit cueChanged();
+        return;
+    }
+
+    const double timestampMs = m_elapsedTimer.nsecsElapsed() / 1000000.0;
+    RuntimeViewState view = m_runtime.tick(timestampMs, m_selectedProfile);
+    Rect overlayRect = view.overlayRect;
+    if (m_overlayWindow != nullptr) {
+        overlayRect = resolveOverlayRect(m_overlayWindow, overlayRect);
+    }
+
+    const float baseCueEnergy = view.cueState.energy;
+    advanceFlowPhase(timestampMs, baseCueEnergy);
+    m_statusText = view.statusText;
+    m_activeProfileName = view.activeProfileName;
+    m_activeWindowTitle = view.activeWindowTitle;
+    m_activeWindowMode = view.supportMode;
+    m_activeExeName = extractExeName(view.statusText);
+    m_overlayVisible = view.overlayVisible;
+    m_overlayX = overlayRect.x;
+    m_overlayY = overlayRect.y;
+    m_overlayWidth = overlayRect.width;
+    m_overlayHeight = overlayRect.height;
+    m_leftAlpha = view.cueState.left_alpha;
+    m_rightAlpha = view.cueState.right_alpha;
+    m_topAlpha = view.cueState.top_alpha;
+    m_bottomAlpha = view.cueState.bottom_alpha;
+    m_centerBias = view.cueState.center_bias;
+    m_leftDensity = view.cueState.left_density;
+    m_rightDensity = view.cueState.right_density;
+    m_topDensity = view.cueState.top_density;
+    m_bottomDensity = view.cueState.bottom_density;
+    m_centerSafeRatio = view.cueState.center_safe_ratio;
+    m_cueMotionX = view.cueState.motion_x;
+    m_cueMotionY = view.cueState.motion_y;
+    m_cueEnergy = displayCueEnergy(baseCueEnergy);
+    applyDebugVisibility();
+
+    if (m_overlayWindow != nullptr) {
+        applyOverlayGeometry(m_overlayWindow, overlayRect);
+    }
+
+    emit stateChanged();
+    emit cueChanged();
+}
+
+void AppController::persistAppState()
+{
+    m_appState.appEnabled = m_appEnabled;
+    saveAppState(m_appStatePath, m_appState);
+}
+
+void AppController::advanceFlowPhase(double timestampMs, float cueEnergy)
+{
+    const double previous = m_lastFlowTimestampMs;
+    const double dtMs = previous < 0.0 ? 16.0 : qMax(1.0, timestampMs - previous);
+    const QByteArray pattern = m_selectedProfile.cuePattern.toUtf8();
+    const float speed = cc_flow_speed(pattern.constData(), cueEnergy);
+
+    m_lastFlowTimestampMs = timestampMs;
+    if (speed <= 0.0f) {
+        return;
+    }
+    m_flowPhase = std::fmod(m_flowPhase + static_cast<float>(dtMs / 1000.0 * speed), kTau);
+}
+
+float AppController::displayCueEnergy(float cueEnergy) const
+{
+    if (!m_debugOverlayEnabled) {
+        return cueEnergy;
+    }
+    return qMin(1.0f, cueEnergy * static_cast<float>(m_selectedProfile.debugOpacityMultiplier));
+}
+
+void AppController::applyDebugVisibility()
+{
+    if (!m_debugOverlayEnabled || !m_overlayVisible) {
+        return;
+    }
+
+    const float multiplier = static_cast<float>(m_selectedProfile.debugOpacityMultiplier);
+    const float densityScale = 0.9f + multiplier * 0.18f;
+    m_leftAlpha = qMin(1.0f, m_leftAlpha * multiplier);
+    m_rightAlpha = qMin(1.0f, m_rightAlpha * multiplier);
+    m_topAlpha = qMin(1.0f, m_topAlpha * multiplier);
+    m_bottomAlpha = qMin(1.0f, m_bottomAlpha * multiplier);
+    m_leftDensity = qMin(1.0f, m_leftDensity * densityScale);
+    m_rightDensity = qMin(1.0f, m_rightDensity * densityScale);
+    m_topDensity = qMin(1.0f, m_topDensity * densityScale);
+    m_bottomDensity = qMin(1.0f, m_bottomDensity * densityScale);
+}
+
+void AppController::setDisabledView()
+{
+    m_statusText = "Comfort Cues disabled.";
+    m_activeWindowTitle.clear();
+    m_activeProfileName.clear();
+    m_activeWindowMode = "disabled";
+    m_activeExeName.clear();
+    m_overlayVisible = false;
+    m_leftAlpha = 0.0f;
+    m_rightAlpha = 0.0f;
+    m_topAlpha = 0.0f;
+    m_bottomAlpha = 0.0f;
+    m_centerBias = 0.0f;
+    m_leftDensity = 0.0f;
+    m_rightDensity = 0.0f;
+    m_topDensity = 0.0f;
+    m_bottomDensity = 0.0f;
+    m_centerSafeRatio = 0.74f;
+    m_cueMotionX = 0.0f;
+    m_cueMotionY = 0.0f;
+    m_cueEnergy = 0.0f;
+    m_flowPhase = 0.0f;
+    m_lastFlowTimestampMs = -1.0;
+}
+
+void AppController::refreshTrayIcon()
+{
+    if (m_tray == nullptr) {
+        return;
+    }
+    const bool isChinese = m_appState.uiLanguage == "zh";
+    const QString enabledText = isChinese ? QStringLiteral("\u5DF2\u5F00\u542F") : QStringLiteral("Enabled");
+    const QString disabledText = isChinese ? QStringLiteral("\u5DF2\u5173\u95ED") : QStringLiteral("Disabled");
+    const QString modeText = isChinese
+        ? QStringLiteral("\u4EC5\u652F\u6301 16:9 \u7A97\u53E3\u5316/\u65E0\u8FB9\u6846")
+        : QStringLiteral("16:9 windowed/borderless only");
+    const QString clickHint = isChinese
+        ? QStringLiteral("\u5355\u51FB\u6258\u76D8\u56FE\u6807\u53EF\u6253\u5F00\u8BBE\u7F6E")
+        : QStringLiteral("Click the tray icon to open");
+    m_tray->setToolTip(QString("Comfort Cues\n%1\n%2\n%3")
+                           .arg(m_appEnabled ? enabledText : disabledText, modeText, clickHint));
+    if (m_enableAction != nullptr) {
+        m_enableAction->setText(isChinese ? QStringLiteral("\u5F00\u542F") : QStringLiteral("Enable"));
+        m_enableAction->setEnabled(!m_appEnabled);
+    }
+    if (m_disableAction != nullptr) {
+        m_disableAction->setText(isChinese ? QStringLiteral("\u5173\u95ED") : QStringLiteral("Disable"));
+        m_disableAction->setEnabled(m_appEnabled);
+    }
+    if (m_quitAction != nullptr) {
+        m_quitAction->setText(isChinese ? QStringLiteral("\u9000\u51FA") : QStringLiteral("Quit"));
+    }
+}
