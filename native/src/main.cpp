@@ -207,6 +207,7 @@ int main(int argc, char *argv[])
     AppController controller(&app, configuredDataRoot, configuredStatePath);
     appendProgressLine(smokeProgressPath, "main: controller constructed");
     QQmlApplicationEngine engine;
+    engine.addImportPath(QDir(QCoreApplication::applicationDirPath()).filePath("qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::warnings, &app, [&](const QList<QQmlError> &warnings) {
         for (const QQmlError &warning : warnings) {
             appendProgressLine(smokeProgressPath, QString("qml warning: %1").arg(warning.toString()));

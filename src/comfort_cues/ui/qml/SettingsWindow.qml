@@ -226,22 +226,22 @@ Window {
     }
 
     ScrollView {
+        id: settingsScrollView
         anchors.fill: parent
         clip: true
+        leftPadding: 16
+        topPadding: 16
+        rightPadding: 16
+        bottomPadding: 16
+        contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-        Item {
-            width: settingsWindow.width
-            implicitHeight: contentColumn.implicitHeight + 32
+        ColumnLayout {
+            id: contentColumn
+            width: settingsScrollView.availableWidth
+            spacing: 12
 
-            ColumnLayout {
-                id: contentColumn
-                x: 16
-                y: 16
-                width: parent.width - 32
-                spacing: 12
-
-                Rectangle {
+            Rectangle {
                     Layout.fillWidth: true
                     radius: 12
                     color: "#FFFFFF"
@@ -398,7 +398,7 @@ Window {
                     }
                 }
 
-                Rectangle {
+            Rectangle {
                     objectName: "quickStartCard"
                     Layout.fillWidth: true
                     radius: 12
@@ -500,7 +500,7 @@ Window {
                     }
                 }
 
-                Rectangle {
+            Rectangle {
                     Layout.fillWidth: true
                     radius: 12
                     color: "#FFFFFF"
@@ -606,7 +606,7 @@ Window {
                     }
                 }
 
-                Rectangle {
+            Rectangle {
                     Layout.fillWidth: true
                     radius: 12
                     color: "#FFFFFF"
@@ -791,7 +791,6 @@ Window {
                             }
                         }
                     }
-                }
             }
         }
     }

@@ -59,93 +59,6 @@ function Convert-ToPsSingleQuoted {
     return $Value.Replace("'", "''")
 }
 
-function Get-CondaPackageRoots {
-    return @(
-        "E:\Users\qiyue\miniconda3\pkgs",
-        "C:\Users\qiyue\miniconda3\pkgs",
-        (Join-Path $env:USERPROFILE "miniconda3\pkgs")
-    ) | Select-Object -Unique
-}
-
-function Get-CondaRuntimeBinDirectories {
-    return @(
-        "E:\Users\qiyue\miniconda3\Library\bin",
-        "E:\Users\qiyue\miniconda3\envs\ui_in\Library\bin",
-        (Join-Path $env:USERPROFILE "miniconda3\Library\bin"),
-        (Join-Path $env:USERPROFILE "miniconda3\envs\ui_in\Library\bin")
-    ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique
-}
-
-function Resolve-CondaQtBin {
-    foreach ($rootPath in Get-CondaPackageRoots) {
-        if (-not (Test-Path -LiteralPath $rootPath)) {
-            continue
-        }
-
-        $package = Get-ChildItem -LiteralPath $rootPath -Directory -Filter "qt-main-*" -ErrorAction SilentlyContinue |
-            Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "Library\bin\qmake.exe") } |
-            Sort-Object Name -Descending |
-            Select-Object -First 1
-        if ($null -ne $package) {
-            return (Join-Path $package.FullName "Library\bin")
-        }
-    }
-
-    throw "Unable to locate the Conda Qt bin directory."
-}
-
-function Resolve-CondaQtPluginRoot {
-    $qtBin = Resolve-CondaQtBin
-    $pluginRoot = Join-Path (Split-Path -Parent $qtBin) "plugins"
-    if (-not (Test-Path -LiteralPath $pluginRoot)) {
-        throw "Unable to locate the Conda Qt plugin directory."
-    }
-    return $pluginRoot
-}
-
-function Resolve-CondaRuntimeDllDirectory {
-    param([string]$DllName)
-
-    foreach ($rootPath in Get-CondaPackageRoots) {
-        if (-not (Test-Path -LiteralPath $rootPath)) {
-            continue
-        }
-
-        $candidate = Get-ChildItem -LiteralPath $rootPath -Recurse -File -Filter $DllName -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -like '*\Library\bin\*' -or $_.DirectoryName -eq $rootPath } |
-            Sort-Object FullName |
-            Select-Object -First 1
-        if ($null -ne $candidate) {
-            return $candidate.DirectoryName
-        }
-    }
-
-    throw "Unable to locate runtime DLL directory for $DllName"
-}
-
-function Resolve-VcRedistCrt {
-    $rootPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC"
-    if (-not (Test-Path -LiteralPath $rootPath)) {
-        throw "Unable to locate the MSVC redist root."
-    }
-
-    $candidate = Get-ChildItem -LiteralPath $rootPath -Directory -ErrorAction SilentlyContinue |
-        Sort-Object Name -Descending |
-        ForEach-Object { Join-Path $_.FullName "x64\Microsoft.VC143.CRT" } |
-        Where-Object {
-            (Test-Path -LiteralPath $_) -and
-            (Test-Path -LiteralPath (Join-Path $_ "msvcp140.dll")) -and
-            (Test-Path -LiteralPath (Join-Path $_ "vcruntime140.dll"))
-        } |
-        Select-Object -First 1
-
-    if ($null -eq $candidate) {
-        throw "Unable to locate the MSVC x64 CRT runtime directory."
-    }
-
-    return $candidate
-}
-
 if (-not (Test-Path -LiteralPath $resolvedExePath)) {
     throw "Missing deployed executable: $resolvedExePath"
 }
@@ -198,14 +111,10 @@ $runtimeArguments = @(
 ) -join ' '
 $runtimePathEntries = @(
     $deployDirectory
-    (Get-CondaRuntimeBinDirectories)
-    (Resolve-CondaQtBin)
-    (Resolve-CondaRuntimeDllDirectory -DllName "libpng16.dll")
-    (Resolve-CondaRuntimeDllDirectory -DllName "zlib.dll")
-    (Resolve-VcRedistCrt)
+    "C:\Windows\System32"
+    "C:\Windows"
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-$runtimePathValue = (($runtimePathEntries -join ';') + ';' + $env:PATH)
-$qtPluginPath = Resolve-CondaQtPluginRoot
+$runtimePathValue = $runtimePathEntries -join ';'
 
 $launcherPs1Template = @'
 Set-StrictMode -Version Latest
@@ -232,9 +141,8 @@ $psi.EnvironmentVariables['CC_APP_STATE_PATH'] = $statePath
 $psi.EnvironmentVariables['CC_RUNTIME_PROGRESS_PATH'] = $progressPath
 $psi.EnvironmentVariables['CC_FORCE_SHOW_SETTINGS'] = $forceShowSettings
 $psi.EnvironmentVariables['PATH'] = '__PATH_VALUE__'
-if (-not [string]::IsNullOrWhiteSpace('__QT_PLUGIN_PATH__')) {
-    $psi.EnvironmentVariables['QT_PLUGIN_PATH'] = '__QT_PLUGIN_PATH__'
-}
+$psi.EnvironmentVariables.Remove('QML2_IMPORT_PATH')
+$psi.EnvironmentVariables.Remove('QT_PLUGIN_PATH')
 
 $process = [System.Diagnostics.Process]::Start($psi)
 if ($null -eq $process) {
@@ -252,7 +160,6 @@ $launcherPs1Content = $launcherPs1Template.
     Replace('__WORKING_DIR__', (Convert-ToPsSingleQuoted -Value $deployDirectory)).
     Replace('__ARGUMENTS__', (Convert-ToPsSingleQuoted -Value $runtimeArguments)).
     Replace('__PATH_VALUE__', (Convert-ToPsSingleQuoted -Value $runtimePathValue)).
-    Replace('__QT_PLUGIN_PATH__', (Convert-ToPsSingleQuoted -Value $qtPluginPath)).
     Replace('__PID_PATH__', (Convert-ToPsSingleQuoted -Value $pidPath))
 $launcherPs1Content | Set-Content -LiteralPath $launcherPs1Path -Encoding ASCII
 

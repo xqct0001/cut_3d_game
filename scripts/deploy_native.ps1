@@ -325,7 +325,7 @@ $qtConfPath = Join-Path $deployRoot "qt.conf"
 ) | Set-Content -LiteralPath $qtConfPath -Encoding ASCII
 
 foreach ($module in @("Qt", "QtQml", "QtQuick", "QtQuick.2")) {
-    Copy-PathIfExists -Source (Join-Path $fallbackQt.QmlRoot $module) -Destination (Join-Path $deployRoot "qml")
+    Copy-PathIfExists -Source (Join-Path $fallbackQt.QmlRoot $module) -Destination (Join-Path $deployRoot "qml\$module")
 }
 
 foreach ($dllName in @("Qt5QuickControls2_conda.dll", "Qt5QuickTemplates2_conda.dll", "Qt5QmlWorkerScript_conda.dll")) {
