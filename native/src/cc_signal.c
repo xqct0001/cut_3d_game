@@ -69,9 +69,9 @@ void cc_signal_init(CCSignalProcessorState *state, float smoothing, float mouse_
     if (state == 0) {
         return;
     }
+    cc_signal_reset(state);
     state->smoothing = smoothing;
     state->mouse_scale = mouse_scale;
-    cc_signal_reset(state);
 }
 
 CCComfortSignal cc_comfort_signal_zero(float timestamp_ms)

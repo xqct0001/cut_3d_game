@@ -45,7 +45,7 @@ def _controller(tmp_path: Path, app: QtWidgets.QApplication) -> AppController:
     return AppController(tmp_path, app, state_path=tmp_path / "app-state.json")
 
 
-def test_bind_current_window_updates_cs2_profile(tmp_path: Path):
+def test_bind_current_window_creates_profile_from_default_selection(tmp_path: Path):
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     profiles = tmp_path / "profiles"
     profiles.mkdir()
@@ -73,10 +73,12 @@ def test_bind_current_window_updates_cs2_profile(tmp_path: Path):
     controller = _controller(tmp_path, app)
     controller._runtime = FakeRuntime(_window())
     controller.bindCurrentWindow()
-    cs2_profile = (profiles / "cs2.toml").read_text(encoding="utf-8").lower()
-    assert 'cs2.exe' in cs2_profile
-    assert 'counter-strike' in cs2_profile
-    assert "bound current window to cs2 profile" in controller.statusText.lower()
+    bound_profile = (profiles / "counter-strike-2.toml").read_text(encoding="utf-8").lower()
+    assert 'name = "counter-strike 2"' in bound_profile
+    assert 'cs2.exe' in bound_profile
+    assert 'counter-strike 2' in bound_profile
+    assert "bound current window to counter-strike 2 profile" in controller.statusText.lower()
+    assert controller.selectedProfileName == "Counter-Strike 2"
 
 
 def test_bind_current_window_rejects_unsupported_window(tmp_path: Path):

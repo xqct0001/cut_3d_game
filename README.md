@@ -20,6 +20,11 @@ The first version targets windowed and borderless-windowed first/third-person ga
 
 For current developer-facing handoff notes, use `docs/dev/README.md`.
 For a fuller directory-by-directory breakdown, use `docs/project-structure.md`.
+For productization and user-facing release work, use:
+
+- `docs/commercialization-plan.md`
+- `docs/profile-schema.md`
+- `docs/troubleshooting.md`
 
 ## Native Build
 

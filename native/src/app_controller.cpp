@@ -79,6 +79,39 @@ QString normalizeLanguage(const QString &value)
     return value.trimmed().toLower() == "zh" ? "zh" : "en";
 }
 
+QString profileNameForWindow(const WindowInfo &window)
+{
+    const QString title = window.title.simplified();
+    if (!title.isEmpty()) {
+        return title.left(48);
+    }
+
+    const QString exeBase = QFileInfo(window.exeName).completeBaseName().simplified();
+    if (!exeBase.isEmpty()) {
+        return exeBase.left(48);
+    }
+    return QStringLiteral("Game Profile");
+}
+
+Profile bindingProfileForWindow(const Profile &selectedProfile, const WindowInfo &window)
+{
+    Profile profile = selectedProfile;
+    if (!profile.isDefault) {
+        return profile;
+    }
+
+    const QString name = profileNameForWindow(window);
+    profile.name = name;
+    profile.description = QString("%1 windowed or borderless profile.").arg(name);
+    profile.matchExe.clear();
+    profile.matchTitle.clear();
+    profile.lastBoundExe.clear();
+    profile.lastBoundTitle.clear();
+    profile.filePath.clear();
+    profile.isDefault = false;
+    return profile;
+}
+
 QIcon resolveAppIcon(QApplication *app)
 {
     QIcon icon(":/src/comfort_cues/ui/assets/comfort-cues.ico");
@@ -437,21 +470,21 @@ void AppController::bindCurrentWindow()
         return;
     }
 
-    Profile profile = m_profileStore.hasProfile("CS2")
-        ? m_profileStore.cloneProfile("CS2")
-        : defaultCs2Profile(m_profilesDir);
+    Profile profile = bindingProfileForWindow(m_selectedProfile, *window);
     appendUnique(profile.matchExe, window->exeName);
     for (const QString &token : titleTokens(window->title)) {
         appendUnique(profile.matchTitle, token);
     }
     profile.lastBoundExe = window->exeName.toLower();
     profile.lastBoundTitle = window->title.toLower();
-    profile.filePath = QDir(m_profilesDir).filePath("cs2.toml");
+    const QString savedProfileName = profile.name;
     m_profileStore.saveProfile(profile);
     m_profileStore = ProfileStore::load(m_profilesDir);
-    m_selectedProfile = m_profileStore.cloneProfile("CS2");
-    m_statusText = QString("Bound current window to CS2 profile: %1").arg(window->exeName);
-    m_activeProfileName = "CS2";
+    m_selectedProfile = m_profileStore.hasProfile(savedProfileName)
+        ? m_profileStore.cloneProfile(savedProfileName)
+        : m_profileStore.defaultProfile();
+    m_statusText = QString("Bound current window to %1 profile: %2").arg(savedProfileName, window->exeName);
+    m_activeProfileName = savedProfileName;
     emit profilesChanged();
     emit profileChanged();
     emit stateChanged();

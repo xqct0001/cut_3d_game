@@ -199,13 +199,11 @@ def test_create_engine_loads_overlay_and_settings_windows(tmp_path: Path):
     assert overlay.objectName() == "overlayWindow"
     assert settings.objectName() == "settingsWindow"
     assert settings.property("visible") is False
-    assert settings.property("width") == 460
-    assert settings.property("height") == 470
-    assert settings.property("minimumWidth") == 460
-    assert settings.property("maximumWidth") == 460
-    assert settings.property("minimumHeight") == 470
-    assert settings.property("maximumHeight") == 470
-    assert settings.findChild(QtCore.QObject, "statusSummaryLabel") is not None
+    assert settings.property("width") == 720
+    assert settings.property("height") == 760
+    assert settings.property("minimumWidth") == 640
+    assert settings.property("minimumHeight") == 620
+    assert settings.findChild(QtCore.QObject, "windowSummaryLabel") is not None
     assert settings.findChild(QtCore.QObject, "quickStartCard") is not None
     assert settings.findChild(QtCore.QObject, "enableButton") is not None
     assert settings.findChild(QtCore.QObject, "disableButton") is not None
