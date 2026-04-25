@@ -28,7 +28,9 @@ class SignalProcessor:
             yaw_raw += snapshot.gamepad_yaw * 0.7 * profile.yaw_gain
             pitch_raw += snapshot.gamepad_pitch * 0.7 * profile.pitch_gain
 
-        lateral_raw = snapshot.lateral_input * 0.75
+        gamepad_lateral = snapshot.gamepad_lateral if profile.enable_gamepad and snapshot.gamepad_connected else 0.0
+        lateral_input = max(-1.0, min(1.0, gamepad_lateral + snapshot.keyboard_lateral))
+        lateral_raw = lateral_input * 0.75
 
         yaw = self._smooth(self._yaw_state, self._apply_deadzone(yaw_raw, profile.deadzone))
         pitch = self._smooth(self._pitch_state, self._apply_deadzone(pitch_raw, profile.deadzone))

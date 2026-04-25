@@ -48,7 +48,18 @@ RuntimeViewState RuntimeService::tick(double timestampMs, const Profile &preview
 
     const Profile activeProfile = hasMatchedProfile ? matchedProfile : previewProfile;
     const CCProfileParams params = activeProfile.toCoreParams();
-    const CCInputSnapshot snapshot = m_inputSource != nullptr ? m_inputSource->snapshot(timestampMs) : CCInputSnapshot{};
+    CCInputSnapshot snapshot = m_inputSource != nullptr ? m_inputSource->snapshot(timestampMs) : CCInputSnapshot{};
+    if (!activeProfile.enableMouse) {
+        snapshot.mouse_dx = 0.0f;
+        snapshot.mouse_dy = 0.0f;
+        snapshot.raw_input_active = 0;
+    }
+    if (!activeProfile.enableGamepad) {
+        snapshot.gamepad_yaw = 0.0f;
+        snapshot.gamepad_pitch = 0.0f;
+        snapshot.gamepad_lateral = 0.0f;
+        snapshot.gamepad_connected = 0;
+    }
     const CCComfortSignal signal = cc_signal_process(&m_signalState, &snapshot, &params, static_cast<float>(timestampMs));
     const CCCueState cue = cc_cue_update(&m_cueState, &signal, &params, static_cast<float>(timestampMs));
 

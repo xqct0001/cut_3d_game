@@ -57,7 +57,6 @@ private:
 };
 
 void ensureProfileTemplates(const QString &targetDirectory);
-Profile defaultCs2Profile(const QString &profileDirectory);
 QStringList titleTokens(const QString &title);
 
 #endif

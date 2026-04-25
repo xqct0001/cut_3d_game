@@ -14,13 +14,13 @@ static constexpr int kDwmwaCloaked = 14;
 static constexpr DWORD kMonitorDefaultToNearest = 2;
 static constexpr UINT kSwShowMinimized = 2;
 static constexpr int kGwlStyle = -16;
-static constexpr long kWsCaption = 0x00C00000L;
-static constexpr long kWsPopup = 0x80000000L;
 static constexpr DWORD kProcessQueryLimitedInformation = 0x1000;
 #endif
 
 static constexpr double kMinSupportedAspect = 1.74;
 static constexpr double kMaxSupportedAspect = 1.82;
+static constexpr long kWsCaption = 0x00C00000L;
+static constexpr long kWsPopup = 0x80000000L;
 
 #ifdef Q_OS_WIN
 Rect rectFromWin32(const RECT &rect)

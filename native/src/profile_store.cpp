@@ -455,40 +455,10 @@ void ensureProfileTemplates(const QString &targetDirectory)
     appendSmokeProgress("profile_store: ensure templates complete");
 }
 
-Profile defaultCs2Profile(const QString &profileDirectory)
-{
-    Profile profile;
-    profile.name = "CS2";
-    profile.description = "Counter-Strike 2 windowed or borderless profile.";
-    profile.matchExe = QStringList() << "cs2.exe";
-    profile.matchTitle = QStringList() << "counter-strike" << "counter strike 2" << "cs2";
-    profile.enableMouse = true;
-    profile.enableGamepad = false;
-    profile.yawGain = 1.05;
-    profile.pitchGain = 0.7;
-    profile.deadzone = 0.05;
-    profile.maxOpacity = 0.38;
-    profile.fadeInMs = 70.0;
-    profile.fadeOutMs = 300.0;
-    profile.safeMode = true;
-    profile.cuePattern = "dynamic";
-    profile.cueVisibility = "more_dots";
-    profile.debugOpacityMultiplier = 2.3;
-    profile.lastBoundExe = "cs2.exe";
-    profile.lastBoundTitle = "counter-strike";
-    profile.filePath = QDir(profileDirectory).filePath("cs2.toml");
-    return profile;
-}
-
 QStringList titleTokens(const QString &title)
 {
     const QString lowered = title.trimmed().toLower();
     QStringList tokens;
-    for (const QString &token : QStringList() << "counter-strike" << "counter strike 2" << "cs2") {
-        if (lowered.contains(token)) {
-            tokens.append(token);
-        }
-    }
     if (!lowered.isEmpty()) {
         const QString truncated = lowered.left(80);
         if (!tokens.contains(truncated)) {

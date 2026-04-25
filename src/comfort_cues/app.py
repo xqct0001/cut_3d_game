@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import math
 from pathlib import Path
 import shutil
@@ -170,17 +171,20 @@ class AppController(QtCore.QObject):
             self.stateChanged.emit()
             return
 
-        profile = self._profile_store.clone_profile("CS2") if "CS2" in self._profile_store.profile_names() else _default_cs2_profile(self._profiles_dir)
+        profile = _binding_profile_for_window(self._selected_profile, window)
         profile.match_exe = tuple(dict.fromkeys([window.exe_name, *profile.match_exe]))
         profile.match_title = tuple(dict.fromkeys([*_title_tokens(window.title), *profile.match_title]))
         profile.last_bound_exe = window.exe_name
         profile.last_bound_title = window.title.lower()
-        profile.file_path = self._profiles_dir / "cs2.toml"
+        saved_profile_name = profile.name
         self._profile_store.save_profile(profile)
         self._profile_store = load_profiles(self._profiles_dir)
-        self._selected_profile = self._profile_store.clone_profile("CS2")
-        self._status_text = f"Bound current window to CS2 profile: {window.exe_name}"
-        self._active_profile_name = "CS2"
+        if saved_profile_name in self._profile_store.profile_names():
+            self._selected_profile = self._profile_store.clone_profile(saved_profile_name)
+        else:
+            self._selected_profile = self._profile_store.clone_profile(self._profile_store.default_profile.name)
+        self._status_text = f"Bound current window to {saved_profile_name} profile: {window.exe_name}"
+        self._active_profile_name = saved_profile_name
         self.profilesChanged.emit()
         self.profileChanged.emit()
         self.stateChanged.emit()
@@ -613,10 +617,7 @@ def create_engine(controller: AppController) -> tuple[QtQml.QQmlApplicationEngin
 
 def _title_tokens(title: str) -> list[str]:
     lowered = title.lower().strip()
-    tokens = [token for token in ["counter-strike", "counter strike 2", "cs2"] if token in lowered]
-    if lowered and lowered not in tokens:
-        tokens.append(lowered[:80])
-    return tokens
+    return [lowered[:80]] if lowered else []
 
 
 def _extract_exe_name(status_text: str) -> str:
@@ -638,28 +639,32 @@ def _extract_exe_name(status_text: str) -> str:
     return ""
 
 
-def _default_cs2_profile(profile_dir: Path) -> Profile:
-    return Profile(
-        name="CS2",
-        description="Counter-Strike 2 windowed or borderless profile.",
-        match_exe=("cs2.exe",),
-        match_title=("counter-strike", "counter strike 2", "cs2"),
-        enable_mouse=True,
-        enable_gamepad=False,
-        yaw_gain=1.05,
-        pitch_gain=0.7,
-        deadzone=0.05,
-        max_opacity=0.38,
-        fade_in_ms=70,
-        fade_out_ms=300,
-        safe_mode=True,
-        cue_pattern="dynamic",
-        cue_visibility="more_dots",
-        debug_opacity_multiplier=2.3,
-        last_bound_exe="cs2.exe",
-        last_bound_title="counter-strike",
-        file_path=profile_dir / "cs2.toml",
+def _binding_profile_for_window(selected_profile: Profile, window) -> Profile:
+    if not selected_profile.is_default:
+        return selected_profile
+
+    name = _profile_name_for_window(window)
+    return replace(
+        selected_profile,
+        name=name,
+        description=f"{name} windowed or borderless profile.",
+        match_exe=(),
+        match_title=(),
+        last_bound_exe="",
+        last_bound_title="",
+        file_path=None,
+        is_default=False,
     )
+
+
+def _profile_name_for_window(window) -> str:
+    title = window.title.strip()
+    if title:
+        return title[:48]
+    stem = Path(window.exe_name).stem.strip()
+    if stem:
+        return stem[:48]
+    return "Game Profile"
 
 
 def _ensure_profile_templates(source_dir: Path, target_dir: Path) -> None:
