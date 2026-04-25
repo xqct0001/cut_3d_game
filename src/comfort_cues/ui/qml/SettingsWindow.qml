@@ -6,20 +6,23 @@ import QtQuick.Window 2.15
 Window {
     id: settingsWindow
     objectName: "settingsWindow"
-    width: 720
-    height: 760
-    minimumWidth: 640
-    minimumHeight: 620
+    width: 760
+    height: 640
+    minimumWidth: 720
+    minimumHeight: 560
     visible: false
     title: "Comfort Cues"
-    color: "#F4F6F7"
+    color: "#F6F7F4"
 
-    readonly property color pageColor: "#F4F6F7"
-    readonly property color cardColor: "#FFFFFF"
-    readonly property color borderColor: "#D9E0E5"
-    readonly property color textColor: "#1F2A33"
-    readonly property color mutedColor: "#5D6974"
-    readonly property color subtleColor: "#F7F9FA"
+    readonly property color pageColor: "#F6F7F4"
+    readonly property color panelColor: "#FFFFFF"
+    readonly property color borderColor: "#D7DDD8"
+    readonly property color textColor: "#1E252B"
+    readonly property color mutedColor: "#65706A"
+    readonly property color greenColor: "#256B4D"
+    readonly property color blueColor: "#2F5E85"
+    readonly property color warningColor: "#8A5B20"
+    readonly property color lineColor: "#E4E8E2"
 
     readonly property var languageOptions: [
         { labelEn: "English", labelZh: "English", value: "en" },
@@ -33,34 +36,54 @@ Window {
     function tr(key, fallback) {
         var en = {
             language: "Language",
-            status: "Status",
-            compatibility: "Compatibility",
-            quickStart: "Quick Start",
-            profile: "Profile",
-            advanced: "Advanced",
-            enabled: "Enabled",
-            disabled: "Disabled",
-            overlayOn: "Overlay on",
+            subtitle: "Comfort overlay for windowed 3D games",
+            readyTitle: "Ready",
+            pausedTitle: "Paused",
+            setupTitle: "Waiting for a game window",
+            trackingTitle: "Tracking game window",
+            unsupportedTitle: "Switch game to borderless/windowed",
+            appOn: "On",
+            appOff: "Off",
+            overlayOn: "Overlay active",
             overlayIdle: "Overlay idle",
             enable: "Enable",
             disable: "Disable",
-            bindWindow: "Bind Window",
-            showDebug: "Show Debug",
-            hideDebug: "Hide Debug",
+            bindWindow: "Bind current game",
+            showDebug: "Show calibration",
+            hideDebug: "Hide calibration",
+            start: "Start",
+            stepEnable: "Enable",
+            stepGame: "Open game",
+            stepBind: "Bind window",
+            currentWindow: "Current window",
+            mode: "Mode",
+            executable: "Executable",
+            noWindow: "No game window detected",
+            exeNA: "Not available",
+            profile: "Game profile",
+            selectedProfile: "Selected profile",
+            activeProfile: "Active profile",
+            none: "None",
             reload: "Reload",
             save: "Save",
-            yaw: "Yaw",
-            pitch: "Pitch",
-            deadzone: "Deadzone",
-            opacity: "Opacity",
+            comfort: "Comfort",
+            cueStrength: "Cue strength",
+            turnSensitivity: "Turn sensitivity",
+            verticalSensitivity: "Vertical sensitivity",
+            calmInput: "Input calm",
+            advanced: "Advanced",
             showControls: "Show controls",
             mouse: "Mouse",
             gamepad: "Gamepad",
             safeMode: "Safe mode",
+            style: "Cue style",
+            visibility: "Visibility",
             fadeIn: "Fade in",
             fadeOut: "Fade out",
             simulator: "Simulator",
             enableSimulator: "Enable simulator",
+            yaw: "Yaw",
+            pitch: "Pitch",
             lateral: "Lateral",
             resetSimulator: "Reset simulator",
             borderless: "Borderless",
@@ -69,68 +92,70 @@ Window {
             unsupportedFullscreen: "Unsupported fullscreen",
             simulatorMode: "Simulator",
             waiting: "Waiting",
-            appState: "App",
-            overlayState: "Overlay",
-            mode: "Mode",
-            activeWindow: "Window",
-            executable: "Executable",
-            selectedProfile: "Selected profile",
-            activeProfile: "Active profile",
-            ratioOnly: "16:9 windowed or borderless",
-            quickStep1: "Enable Comfort Cues.",
-            quickStep2: "Open the game in windowed or borderless mode.",
-            quickStep3: "Bind the current window.",
-            openSupportedGame: "Open a supported game window.",
-            enableAppHint: "Enable Comfort Cues to detect a game.",
-            pausedHint: "Enable Comfort Cues first.",
-            trackingHint: "Tracking the current window.",
-            bindHint: "Window detected. Bind it to this profile.",
-            fullscreenHint: "Use 16:9 windowed or borderless mode.",
+            disabled: "Disabled",
             ready: "Ready.",
             runningBg: "Comfort Cues running in background.",
             disabledStatus: "Comfort Cues disabled.",
             savedProfilePrefix: "Saved profile to ",
             bindFailedNoWindow: "Bind failed: no foreground game window detected.",
             bindFailedPrefix: "Bind failed: ",
-            boundPrefix: "Bound current window to CS2 profile: ",
+            boundGenericPrefix: "Bound current window to ",
             activePrefix: "Active: ",
             unsupportedRatioPrefix: "Unsupported ratio: ",
             unsupportedWindowPrefix: "Unsupported window: ",
             noMatchedProfilePrefix: "Window detected but no matched profile: ",
-            simulatorPreviewPrefix: "Simulator preview - ",
-            none: "None",
-            exeNA: "exe n/a"
+            simulatorPreviewPrefix: "Simulator preview - "
         }
         var zh = {
             language: "语言",
-            status: "状态",
-            compatibility: "兼容性",
-            quickStart: "快速开始",
-            profile: "Profile",
-            advanced: "高级",
-            enabled: "已开启",
-            disabled: "已关闭",
-            overlayOn: "覆盖层开启",
+            subtitle: "面向窗口化 3D 游戏的舒适覆盖层",
+            readyTitle: "已就绪",
+            pausedTitle: "已暂停",
+            setupTitle: "等待游戏窗口",
+            trackingTitle: "正在跟踪游戏窗口",
+            unsupportedTitle: "请切到无边框或窗口化",
+            appOn: "开启",
+            appOff: "关闭",
+            overlayOn: "覆盖层运行中",
             overlayIdle: "覆盖层空闲",
             enable: "开启",
             disable: "关闭",
-            bindWindow: "绑定窗口",
-            showDebug: "显示调试",
-            hideDebug: "隐藏调试",
-            reload: "重新加载",
+            bindWindow: "绑定当前游戏",
+            showDebug: "显示校准",
+            hideDebug: "隐藏校准",
+            start: "开始",
+            stepEnable: "开启",
+            stepGame: "打开游戏",
+            stepBind: "绑定窗口",
+            currentWindow: "当前窗口",
+            mode: "模式",
+            executable: "程序",
+            noWindow: "未检测到游戏窗口",
+            exeNA: "不可用",
+            profile: "游戏配置",
+            selectedProfile: "选择配置",
+            activeProfile: "生效配置",
+            none: "无",
+            reload: "刷新",
             save: "保存",
-            yaw: "水平",
-            pitch: "垂直",
-            deadzone: "死区",
-            opacity: "透明度",
+            comfort: "舒适度",
+            cueStrength: "提示强度",
+            turnSensitivity: "转向灵敏度",
+            verticalSensitivity: "垂直灵敏度",
+            calmInput: "输入稳定",
+            advanced: "高级",
             showControls: "显示控件",
             mouse: "鼠标",
             gamepad: "手柄",
             safeMode: "安全模式",
+            style: "提示样式",
+            visibility: "可见度",
             fadeIn: "淡入",
             fadeOut: "淡出",
             simulator: "模拟器",
             enableSimulator: "启用模拟器",
+            yaw: "水平",
+            pitch: "垂直",
             lateral: "侧向",
             resetSimulator: "重置模拟器",
             borderless: "无边框",
@@ -139,37 +164,19 @@ Window {
             unsupportedFullscreen: "不支持独占全屏",
             simulatorMode: "模拟器",
             waiting: "等待",
-            appState: "应用",
-            overlayState: "覆盖层",
-            mode: "模式",
-            activeWindow: "窗口",
-            executable: "程序",
-            selectedProfile: "当前 Profile",
-            activeProfile: "生效 Profile",
-            ratioOnly: "16:9 窗口化或无边框",
-            quickStep1: "开启 Comfort Cues。",
-            quickStep2: "用窗口化或无边框打开游戏。",
-            quickStep3: "绑定当前窗口。",
-            openSupportedGame: "打开受支持的游戏窗口。",
-            enableAppHint: "先开启 Comfort Cues 以检测游戏。",
-            pausedHint: "请先开启 Comfort Cues。",
-            trackingHint: "正在跟踪当前窗口。",
-            bindHint: "已检测到窗口，可绑定到此 Profile。",
-            fullscreenHint: "使用 16:9 窗口化或无边框模式。",
+            disabled: "已关闭",
             ready: "就绪。",
             runningBg: "Comfort Cues 正在后台运行。",
             disabledStatus: "Comfort Cues 已关闭。",
-            savedProfilePrefix: "已保存 Profile 到 ",
+            savedProfilePrefix: "已保存配置到 ",
             bindFailedNoWindow: "绑定失败：未检测到前台游戏窗口。",
             bindFailedPrefix: "绑定失败：",
-            boundPrefix: "已将当前窗口绑定到 CS2 Profile：",
+            boundGenericPrefix: "已将当前窗口绑定到 ",
             activePrefix: "当前：",
             unsupportedRatioPrefix: "比例不支持：",
             unsupportedWindowPrefix: "窗口不支持：",
-            noMatchedProfilePrefix: "检测到窗口但没有匹配 Profile：",
-            simulatorPreviewPrefix: "模拟器预览 - ",
-            none: "无",
-            exeNA: "exe 不可用"
+            noMatchedProfilePrefix: "检测到窗口但没有匹配配置：",
+            simulatorPreviewPrefix: "模拟器预览 - "
         }
         var table = currentLanguage() === "zh" ? zh : en
         return table[key] || fallback || key
@@ -181,7 +188,7 @@ Window {
         if (text === "Comfort Cues disabled.") return tr("disabledStatus")
         if (text === "Bind failed: no foreground game window detected.") return tr("bindFailedNoWindow")
         if (text.indexOf("Saved profile to ") === 0) return tr("savedProfilePrefix") + text.substring("Saved profile to ".length)
-        if (text.indexOf("Bound current window to CS2 profile: ") === 0) return tr("boundPrefix") + text.substring("Bound current window to CS2 profile: ".length)
+        if (text.indexOf("Bound current window to ") === 0) return tr("boundGenericPrefix") + text.substring("Bound current window to ".length)
         if (text.indexOf("Bind failed: ") === 0) return tr("bindFailedPrefix") + text.substring("Bind failed: ".length)
         if (text.indexOf("Active: ") === 0) return tr("activePrefix") + text.substring("Active: ".length)
         if (text.indexOf("Unsupported ratio: ") === 0) return tr("unsupportedRatioPrefix") + text.substring("Unsupported ratio: ".length)
@@ -189,10 +196,6 @@ Window {
         if (text.indexOf("Window detected but no matched profile: ") === 0) return tr("noMatchedProfilePrefix") + text.substring("Window detected but no matched profile: ".length)
         if (text.indexOf("Simulator preview - ") === 0) return tr("simulatorPreviewPrefix") + text.substring("Simulator preview - ".length)
         return text
-    }
-
-    function formatNumber(value) {
-        return Number(value).toFixed(2)
     }
 
     function modeSummary(mode) {
@@ -206,18 +209,31 @@ Window {
         return mode.length > 0 ? mode : tr("waiting")
     }
 
-    function windowSummary() {
-        if (controller.activeWindowTitle.length > 0) return controller.activeWindowTitle
-        if (controller.appEnabled) return tr("openSupportedGame")
-        return tr("enableAppHint")
+    function sessionTitle() {
+        if (!controller.appEnabled) return tr("pausedTitle")
+        if (controller.activeWindowMode === "unsupported-ratio" || controller.activeWindowMode === "exclusive-or-unknown") {
+            return tr("unsupportedTitle")
+        }
+        if (controller.overlayVisible) return tr("trackingTitle")
+        if (controller.activeWindowTitle.length > 0) return tr("readyTitle")
+        return tr("setupTitle")
     }
 
-    function quickHint() {
-        if (!controller.appEnabled) return tr("pausedHint")
-        if (controller.activeWindowTitle.length > 0) {
-            return controller.overlayVisible ? tr("trackingHint") : tr("bindHint")
+    function sessionColor() {
+        if (!controller.appEnabled) return settingsWindow.mutedColor
+        if (controller.activeWindowMode === "unsupported-ratio" || controller.activeWindowMode === "exclusive-or-unknown") {
+            return settingsWindow.warningColor
         }
-        return tr("fullscreenHint")
+        if (controller.overlayVisible) return settingsWindow.greenColor
+        return settingsWindow.blueColor
+    }
+
+    function windowSummary() {
+        return controller.activeWindowTitle.length > 0 ? controller.activeWindowTitle : tr("noWindow")
+    }
+
+    function formatNumber(value) {
+        return Number(value).toFixed(2)
     }
 
     onClosing: {
@@ -234,17 +250,16 @@ Window {
         id: settingsScrollView
         anchors.fill: parent
         clip: true
-        leftPadding: 22
-        topPadding: 20
-        rightPadding: 22
-        bottomPadding: 22
+        leftPadding: 20
+        topPadding: 18
+        rightPadding: 20
+        bottomPadding: 20
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         ColumnLayout {
-            id: contentColumn
             width: settingsScrollView.availableWidth
-            spacing: 14
+            spacing: 12
 
             RowLayout {
                 Layout.fillWidth: true
@@ -252,7 +267,7 @@ Window {
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 3
+                    spacing: 2
 
                     Label {
                         text: "Comfort Cues"
@@ -263,23 +278,35 @@ Window {
 
                     Label {
                         Layout.fillWidth: true
-                        text: settingsWindow.translateStatus(controller.statusText)
+                        text: settingsWindow.tr("subtitle")
                         color: settingsWindow.mutedColor
                         font.pixelSize: 13
                         elide: Text.ElideRight
                     }
                 }
 
-                Label {
-                    text: settingsWindow.tr("language")
-                    color: settingsWindow.mutedColor
-                    font.pixelSize: 12
+                Rectangle {
+                    radius: 8
+                    color: controller.appEnabled ? "#E8F3EC" : "#ECEFEC"
+                    border.color: controller.appEnabled ? "#B9D7C4" : "#D2D8D2"
+                    border.width: 1
+                    implicitWidth: appPillLabel.implicitWidth + 18
+                    implicitHeight: 30
+
+                    Label {
+                        id: appPillLabel
+                        anchors.centerIn: parent
+                        text: controller.appEnabled ? settingsWindow.tr("appOn") : settingsWindow.tr("appOff")
+                        color: controller.appEnabled ? settingsWindow.greenColor : settingsWindow.mutedColor
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
                 }
 
                 ComboBox {
                     id: languageCombo
                     objectName: "languageCombo"
-                    implicitWidth: 118
+                    implicitWidth: 120
                     model: settingsWindow.languageOptions
                     textRole: currentLanguage() === "zh" ? "labelZh" : "labelEn"
                     currentIndex: currentLanguage() === "zh" ? 1 : 0
@@ -287,208 +314,122 @@ Window {
                 }
             }
 
-            GridLayout {
-                Layout.fillWidth: true
-                columns: settingsWindow.width >= 700 ? 2 : 1
-                columnSpacing: 14
-                rowSpacing: 14
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignTop
-                    radius: 8
-                    color: settingsWindow.cardColor
-                    border.color: settingsWindow.borderColor
-                    border.width: 1
-                    implicitHeight: statusLayout.implicitHeight + 32
-
-                    ColumnLayout {
-                        id: statusLayout
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 12
-
-                        Label {
-                            text: settingsWindow.tr("status")
-                            color: settingsWindow.textColor
-                            font.pixelSize: 16
-                            font.bold: true
-                        }
-
-                        GridLayout {
-                            Layout.fillWidth: true
-                            columns: 2
-                            columnSpacing: 10
-                            rowSpacing: 8
-
-                            Label { text: settingsWindow.tr("appState"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
-                            Label {
-                                Layout.fillWidth: true
-                                text: controller.appEnabled ? settingsWindow.tr("enabled") : settingsWindow.tr("disabled")
-                                color: controller.appEnabled ? "#2E6A47" : "#6B747B"
-                                font.bold: true
-                            }
-
-                            Label { text: settingsWindow.tr("overlayState"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
-                            Label {
-                                Layout.fillWidth: true
-                                text: controller.overlayVisible ? settingsWindow.tr("overlayOn") : settingsWindow.tr("overlayIdle")
-                                color: controller.overlayVisible ? "#2B6383" : "#6B747B"
-                                font.bold: true
-                            }
-
-                            Label { text: settingsWindow.tr("mode"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
-                            Label {
-                                Layout.fillWidth: true
-                                text: settingsWindow.modeSummary(controller.activeWindowMode)
-                                color: settingsWindow.textColor
-                                font.bold: true
-                                elide: Text.ElideRight
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            Button {
-                                id: enableButton
-                                objectName: "enableButton"
-                                Layout.fillWidth: true
-                                text: settingsWindow.tr("enable")
-                                enabled: !controller.appEnabled
-                                onClicked: controller.enableApp()
-                            }
-
-                            Button {
-                                id: disableButton
-                                objectName: "disableButton"
-                                Layout.fillWidth: true
-                                text: settingsWindow.tr("disable")
-                                enabled: controller.appEnabled
-                                onClicked: controller.disableApp()
-                            }
-                        }
-                    }
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignTop
-                    radius: 8
-                    color: settingsWindow.cardColor
-                    border.color: settingsWindow.borderColor
-                    border.width: 1
-                    implicitHeight: compatibilityLayout.implicitHeight + 32
-
-                    ColumnLayout {
-                        id: compatibilityLayout
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 10
-
-                        Label {
-                            text: settingsWindow.tr("compatibility")
-                            color: settingsWindow.textColor
-                            font.pixelSize: 16
-                            font.bold: true
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: settingsWindow.tr("ratioOnly")
-                            color: settingsWindow.mutedColor
-                            font.pixelSize: 12
-                        }
-
-                        GridLayout {
-                            Layout.fillWidth: true
-                            columns: 2
-                            columnSpacing: 10
-                            rowSpacing: 8
-
-                            Label { text: settingsWindow.tr("activeWindow"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
-                            Label {
-                                objectName: "windowSummaryLabel"
-                                Layout.fillWidth: true
-                                text: settingsWindow.windowSummary()
-                                color: settingsWindow.textColor
-                                elide: Text.ElideRight
-                            }
-
-                            Label { text: settingsWindow.tr("executable"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
-                            Label {
-                                Layout.fillWidth: true
-                                text: controller.activeExeName.length > 0 ? controller.activeExeName : settingsWindow.tr("exeNA")
-                                color: settingsWindow.textColor
-                                elide: Text.ElideRight
-                            }
-                        }
-                    }
-                }
-            }
-
             Rectangle {
                 objectName: "quickStartCard"
                 Layout.fillWidth: true
                 radius: 8
-                color: settingsWindow.cardColor
+                color: settingsWindow.panelColor
                 border.color: settingsWindow.borderColor
                 border.width: 1
-                implicitHeight: quickStartLayout.implicitHeight + 32
+                implicitHeight: startLayout.implicitHeight + 32
 
                 ColumnLayout {
-                    id: quickStartLayout
+                    id: startLayout
                     anchors.fill: parent
                     anchors.margins: 16
-                    spacing: 12
+                    spacing: 14
 
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 10
+                        spacing: 14
 
-                        Label {
-                            text: settingsWindow.tr("quickStart")
-                            color: settingsWindow.textColor
-                            font.pixelSize: 16
-                            font.bold: true
+                        Rectangle {
+                            Layout.preferredWidth: 8
+                            Layout.fillHeight: true
+                            radius: 4
+                            color: settingsWindow.sessionColor()
                         }
 
-                        Item { Layout.fillWidth: true }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 5
 
-                        Label {
-                            text: settingsWindow.quickHint()
-                            color: settingsWindow.mutedColor
-                            font.pixelSize: 12
-                            elide: Text.ElideRight
+                            Label {
+                                text: settingsWindow.sessionTitle()
+                                color: settingsWindow.textColor
+                                font.pixelSize: 23
+                                font.bold: true
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: settingsWindow.translateStatus(controller.statusText)
+                                color: settingsWindow.mutedColor
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        Button {
+                            id: bindWindowButton
+                            objectName: "bindWindowButton"
+                            Layout.preferredWidth: 178
+                            Layout.preferredHeight: 42
+                            text: settingsWindow.tr("bindWindow")
+                            onClicked: controller.bindCurrentWindow()
                         }
                     }
 
-                    RowLayout {
+                    Rectangle {
                         Layout.fillWidth: true
-                        spacing: 10
+                        implicitHeight: 1
+                        color: settingsWindow.lineColor
+                    }
 
-                        Repeater {
-                            model: [settingsWindow.tr("quickStep1"), settingsWindow.tr("quickStep2"), settingsWindow.tr("quickStep3")]
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 3
+                        columnSpacing: 16
+                        rowSpacing: 8
 
-                            Rectangle {
-                                Layout.fillWidth: true
-                                radius: 8
-                                color: settingsWindow.subtleColor
-                                border.color: "#E4EAEE"
-                                border.width: 1
-                                implicitHeight: 46
+                        Label {
+                            text: "1  " + settingsWindow.tr("stepEnable")
+                            color: controller.appEnabled ? settingsWindow.greenColor : settingsWindow.textColor
+                            font.bold: true
+                        }
 
-                                Label {
-                                    anchors.fill: parent
-                                    anchors.margins: 10
-                                    text: modelData
-                                    color: settingsWindow.textColor
-                                    font.pixelSize: 13
-                                    verticalAlignment: Text.AlignVCenter
-                                    elide: Text.ElideRight
-                                }
-                            }
+                        Label {
+                            text: "2  " + settingsWindow.tr("stepGame")
+                            color: controller.activeWindowTitle.length > 0 ? settingsWindow.greenColor : settingsWindow.textColor
+                            font.bold: true
+                        }
+
+                        Label {
+                            text: "3  " + settingsWindow.tr("stepBind")
+                            color: controller.activeProfileName.length > 0 || controller.overlayVisible ? settingsWindow.greenColor : settingsWindow.textColor
+                            font.bold: true
+                        }
+                    }
+
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 2
+                        columnSpacing: 18
+                        rowSpacing: 8
+
+                        Label { text: settingsWindow.tr("currentWindow"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
+                        Label {
+                            objectName: "windowSummaryLabel"
+                            Layout.fillWidth: true
+                            text: settingsWindow.windowSummary()
+                            color: settingsWindow.textColor
+                            elide: Text.ElideRight
+                        }
+
+                        Label { text: settingsWindow.tr("mode"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
+                        Label {
+                            Layout.fillWidth: true
+                            text: settingsWindow.modeSummary(controller.activeWindowMode)
+                            color: settingsWindow.textColor
+                            elide: Text.ElideRight
+                        }
+
+                        Label { text: settingsWindow.tr("executable"); color: settingsWindow.mutedColor; font.pixelSize: 12 }
+                        Label {
+                            Layout.fillWidth: true
+                            text: controller.activeExeName.length > 0 ? controller.activeExeName : settingsWindow.tr("exeNA")
+                            color: settingsWindow.textColor
+                            elide: Text.ElideRight
                         }
                     }
 
@@ -497,11 +438,21 @@ Window {
                         spacing: 8
 
                         Button {
-                            id: bindWindowButton
-                            objectName: "bindWindowButton"
+                            id: enableButton
+                            objectName: "enableButton"
                             Layout.fillWidth: true
-                            text: settingsWindow.tr("bindWindow")
-                            onClicked: controller.bindCurrentWindow()
+                            text: settingsWindow.tr("enable")
+                            enabled: !controller.appEnabled
+                            onClicked: controller.enableApp()
+                        }
+
+                        Button {
+                            id: disableButton
+                            objectName: "disableButton"
+                            Layout.fillWidth: true
+                            text: settingsWindow.tr("disable")
+                            enabled: controller.appEnabled
+                            onClicked: controller.disableApp()
                         }
 
                         Button {
@@ -518,16 +469,90 @@ Window {
             Rectangle {
                 Layout.fillWidth: true
                 radius: 8
-                color: settingsWindow.cardColor
+                color: settingsWindow.panelColor
                 border.color: settingsWindow.borderColor
                 border.width: 1
-                implicitHeight: profileLayout.implicitHeight + 32
+                implicitHeight: comfortLayout.implicitHeight + 32
+
+                ColumnLayout {
+                    id: comfortLayout
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 12
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Label {
+                            text: settingsWindow.tr("comfort")
+                            color: settingsWindow.textColor
+                            font.pixelSize: 17
+                            font.bold: true
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Label {
+                            text: controller.overlayVisible ? settingsWindow.tr("overlayOn") : settingsWindow.tr("overlayIdle")
+                            color: controller.overlayVisible ? settingsWindow.greenColor : settingsWindow.mutedColor
+                            font.pixelSize: 12
+                            font.bold: true
+                        }
+                    }
+
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 3
+                        columnSpacing: 12
+                        rowSpacing: 9
+
+                        Label { text: settingsWindow.tr("cueStrength"); color: settingsWindow.textColor }
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 0.05
+                            to: 0.5
+                            value: controller.maxOpacity
+                            onMoved: controller.maxOpacity = value
+                        }
+                        Label { text: settingsWindow.formatNumber(controller.maxOpacity); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
+
+                        Label { text: settingsWindow.tr("turnSensitivity"); color: settingsWindow.textColor }
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 0.0
+                            to: 2.0
+                            value: controller.yawGain
+                            onMoved: controller.yawGain = value
+                        }
+                        Label { text: settingsWindow.formatNumber(controller.yawGain); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
+
+                        Label { text: settingsWindow.tr("verticalSensitivity"); color: settingsWindow.textColor }
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 0.0
+                            to: 2.0
+                            value: controller.pitchGain
+                            onMoved: controller.pitchGain = value
+                        }
+                        Label { text: settingsWindow.formatNumber(controller.pitchGain); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                radius: 8
+                color: settingsWindow.panelColor
+                border.color: settingsWindow.borderColor
+                border.width: 1
+                implicitHeight: profileLayout.implicitHeight + 28
 
                 ColumnLayout {
                     id: profileLayout
                     anchors.fill: parent
-                    anchors.margins: 16
-                    spacing: 12
+                    anchors.margins: 14
+                    spacing: 10
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -577,68 +602,21 @@ Window {
                             onClicked: controller.saveSelectedProfile()
                         }
                     }
-
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: 3
-                        columnSpacing: 12
-                        rowSpacing: 8
-
-                        Label { text: settingsWindow.tr("yaw"); color: settingsWindow.textColor }
-                        Slider {
-                            Layout.fillWidth: true
-                            from: 0.0
-                            to: 2.0
-                            value: controller.yawGain
-                            onMoved: controller.yawGain = value
-                        }
-                        Label { text: settingsWindow.formatNumber(controller.yawGain); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
-
-                        Label { text: settingsWindow.tr("pitch"); color: settingsWindow.textColor }
-                        Slider {
-                            Layout.fillWidth: true
-                            from: 0.0
-                            to: 2.0
-                            value: controller.pitchGain
-                            onMoved: controller.pitchGain = value
-                        }
-                        Label { text: settingsWindow.formatNumber(controller.pitchGain); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
-
-                        Label { text: settingsWindow.tr("deadzone"); color: settingsWindow.textColor }
-                        Slider {
-                            Layout.fillWidth: true
-                            from: 0.0
-                            to: 0.5
-                            value: controller.deadzone
-                            onMoved: controller.deadzone = value
-                        }
-                        Label { text: settingsWindow.formatNumber(controller.deadzone); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
-
-                        Label { text: settingsWindow.tr("opacity"); color: settingsWindow.textColor }
-                        Slider {
-                            Layout.fillWidth: true
-                            from: 0.05
-                            to: 0.5
-                            value: controller.maxOpacity
-                            onMoved: controller.maxOpacity = value
-                        }
-                        Label { text: settingsWindow.formatNumber(controller.maxOpacity); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
-                    }
                 }
             }
 
             Rectangle {
                 Layout.fillWidth: true
                 radius: 8
-                color: settingsWindow.cardColor
+                color: settingsWindow.panelColor
                 border.color: settingsWindow.borderColor
                 border.width: 1
-                implicitHeight: advancedLayout.implicitHeight + 32
+                implicitHeight: advancedLayout.implicitHeight + 28
 
                 ColumnLayout {
                     id: advancedLayout
                     anchors.fill: parent
-                    anchors.margins: 16
+                    anchors.margins: 14
                     spacing: 12
 
                     RowLayout {
@@ -721,6 +699,16 @@ Window {
                             columnSpacing: 12
                             rowSpacing: 8
 
+                            Label { text: settingsWindow.tr("calmInput"); color: settingsWindow.textColor }
+                            Slider {
+                                Layout.fillWidth: true
+                                from: 0.0
+                                to: 0.5
+                                value: controller.deadzone
+                                onMoved: controller.deadzone = value
+                            }
+                            Label { text: settingsWindow.formatNumber(controller.deadzone); color: settingsWindow.mutedColor; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 44 }
+
                             Label { text: settingsWindow.tr("fadeIn"); color: settingsWindow.textColor }
                             Slider {
                                 Layout.fillWidth: true
@@ -745,7 +733,7 @@ Window {
                         Rectangle {
                             Layout.fillWidth: true
                             implicitHeight: 1
-                            color: "#E7EDF1"
+                            color: settingsWindow.lineColor
                         }
 
                         RowLayout {
