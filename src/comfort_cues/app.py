@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import replace
 import math
 from pathlib import Path
-import shutil
 from time import perf_counter
 
 from PySide6 import QtCore, QtQml, QtWidgets
 
 from comfort_cues.app_state import default_app_state_path, load_app_state, save_app_state
-from comfort_cues.config import Profile, load_profiles
+from comfort_cues.config import load_profiles
+from comfort_cues.controller.display import DisabledDisplayState, apply_debug_visibility, display_cue_energy, flow_speed
+from comfort_cues.controller.profile_binding import binding_profile_for_window, title_tokens
+from comfort_cues.controller.profile_templates import ensure_profile_templates
+from comfort_cues.controller.status import extract_exe_name
 from comfort_cues.engine.cues import CueEngine
 from comfort_cues.engine.signal import SignalProcessor
 from comfort_cues.platform.win32_input import Win32InputSource
@@ -46,7 +48,7 @@ class AppController(QtCore.QObject):
             save_app_state(self._app_state_path, self._app_state)
         else:
             self._app_state = load_app_state(self._app_state_path)
-        _ensure_profile_templates(root_path / "profiles", self._profiles_dir)
+        ensure_profile_templates(root_path / "profiles", self._profiles_dir)
         self._profile_store = load_profiles(self._profiles_dir)
         self._selected_profile = self._profile_store.clone_profile("CS2" if "CS2" in self._profile_store.profile_names() else self._profile_store.default_profile.name)
         self._tracker = ForegroundWindowTracker()
@@ -171,9 +173,9 @@ class AppController(QtCore.QObject):
             self.stateChanged.emit()
             return
 
-        profile = _binding_profile_for_window(self._selected_profile, window)
+        profile = binding_profile_for_window(self._selected_profile, window)
         profile.match_exe = tuple(dict.fromkeys([window.exe_name, *profile.match_exe]))
-        profile.match_title = tuple(dict.fromkeys([*_title_tokens(window.title), *profile.match_title]))
+        profile.match_title = tuple(dict.fromkeys([*title_tokens(window.title), *profile.match_title]))
         profile.last_bound_exe = window.exe_name
         profile.last_bound_title = window.title.lower()
         saved_profile_name = profile.name
@@ -219,7 +221,7 @@ class AppController(QtCore.QObject):
         self._active_profile_name = view.active_profile_name
         self._active_window_title = view.active_window_title
         self._active_window_mode = view.support_mode
-        self._active_exe_name = _extract_exe_name(view.status_text)
+        self._active_exe_name = extract_exe_name(view.status_text)
         self._overlay_visible = view.overlay_visible
         self._overlay_x = overlay_rect.x
         self._overlay_y = overlay_rect.y
@@ -237,32 +239,59 @@ class AppController(QtCore.QObject):
         self._center_safe_ratio = view.cue_state.center_safe_ratio
         self._cue_motion_x = view.cue_state.motion_x
         self._cue_motion_y = view.cue_state.motion_y
-        self._cue_energy = self._display_cue_energy(base_cue_energy)
-        self._apply_debug_visibility()
+        self._cue_energy = display_cue_energy(
+            base_cue_energy,
+            self._debug_overlay_enabled,
+            self._selected_profile.debug_opacity_multiplier,
+        )
+        debug_state = apply_debug_visibility(
+            DisabledDisplayState(
+                overlay_visible=self._overlay_visible,
+                left_alpha=self._left_alpha,
+                right_alpha=self._right_alpha,
+                top_alpha=self._top_alpha,
+                bottom_alpha=self._bottom_alpha,
+                left_density=self._left_density,
+                right_density=self._right_density,
+                top_density=self._top_density,
+                bottom_density=self._bottom_density,
+            ),
+            self._debug_overlay_enabled,
+            self._selected_profile.debug_opacity_multiplier,
+        )
+        self._left_alpha = debug_state.left_alpha
+        self._right_alpha = debug_state.right_alpha
+        self._top_alpha = debug_state.top_alpha
+        self._bottom_alpha = debug_state.bottom_alpha
+        self._left_density = debug_state.left_density
+        self._right_density = debug_state.right_density
+        self._top_density = debug_state.top_density
+        self._bottom_density = debug_state.bottom_density
         if self._overlay_window is not None:
             apply_overlay_geometry(self._overlay_window, overlay_rect)
         self.stateChanged.emit()
         self.cueChanged.emit()
 
     def _set_disabled_view(self) -> None:
-        self._status_text = "Comfort Cues disabled."
-        self._active_window_title = ""
-        self._active_profile_name = ""
-        self._active_window_mode = "disabled"
-        self._active_exe_name = ""
-        self._overlay_visible = False
-        self._left_alpha = 0.0
-        self._right_alpha = 0.0
-        self._top_alpha = 0.0
-        self._bottom_alpha = 0.0
-        self._center_bias = 0.0
-        self._left_density = 0.0
-        self._right_density = 0.0
-        self._top_density = 0.0
-        self._bottom_density = 0.0
-        self._cue_motion_x = 0.0
-        self._cue_motion_y = 0.0
-        self._cue_energy = 0.0
+        state = DisabledDisplayState()
+        self._status_text = state.status_text
+        self._active_window_title = state.active_window_title
+        self._active_profile_name = state.active_profile_name
+        self._active_window_mode = state.active_window_mode
+        self._active_exe_name = state.active_exe_name
+        self._overlay_visible = state.overlay_visible
+        self._left_alpha = state.left_alpha
+        self._right_alpha = state.right_alpha
+        self._top_alpha = state.top_alpha
+        self._bottom_alpha = state.bottom_alpha
+        self._center_bias = state.center_bias
+        self._left_density = state.left_density
+        self._right_density = state.right_density
+        self._top_density = state.top_density
+        self._bottom_density = state.bottom_density
+        self._cue_motion_x = state.cue_motion_x
+        self._cue_motion_y = state.cue_motion_y
+        self._cue_energy = state.cue_energy
         self._flow_phase = 0.0
         self._last_flow_timestamp_ms = None
 
@@ -275,27 +304,8 @@ class AppController(QtCore.QObject):
         previous = self._last_flow_timestamp_ms
         self._last_flow_timestamp_ms = timestamp_ms
         dt_ms = 16.0 if previous is None else max(1.0, timestamp_ms - previous)
-        speed = _flow_speed(self._selected_profile.cue_pattern, cue_energy)
+        speed = flow_speed(self._selected_profile.cue_pattern, cue_energy)
         self._flow_phase = (self._flow_phase + dt_ms / 1000.0 * speed) % math.tau
-
-    def _display_cue_energy(self, cue_energy: float) -> float:
-        if not self._debug_overlay_enabled:
-            return cue_energy
-        return min(1.0, cue_energy * self._selected_profile.debug_opacity_multiplier)
-
-    def _apply_debug_visibility(self) -> None:
-        if not self._debug_overlay_enabled or not self._overlay_visible:
-            return
-        multiplier = self._selected_profile.debug_opacity_multiplier
-        self._left_alpha = min(1.0, self._left_alpha * multiplier)
-        self._right_alpha = min(1.0, self._right_alpha * multiplier)
-        self._top_alpha = min(1.0, self._top_alpha * multiplier)
-        self._bottom_alpha = min(1.0, self._bottom_alpha * multiplier)
-        density_scale = 0.9 + multiplier * 0.18
-        self._left_density = min(1.0, self._left_density * density_scale)
-        self._right_density = min(1.0, self._right_density * density_scale)
-        self._top_density = min(1.0, self._top_density * density_scale)
-        self._bottom_density = min(1.0, self._bottom_density * density_scale)
 
     @QtCore.Property("QVariantList", notify=profilesChanged)
     def profileOptions(self) -> list[str]:
@@ -613,73 +623,3 @@ def create_engine(controller: AppController) -> tuple[QtQml.QQmlApplicationEngin
     if overlay_window is None or settings_window is None:
         raise RuntimeError("Failed to load QML windows.")
     return engine, overlay_window, settings_window
-
-
-def _title_tokens(title: str) -> list[str]:
-    lowered = title.lower().strip()
-    return [lowered[:80]] if lowered else []
-
-
-def _extract_exe_name(status_text: str) -> str:
-    if status_text.startswith("Active: "):
-        payload = status_text.removeprefix("Active: ")
-        return payload.split(" - ", 1)[0].lower()
-    if status_text.startswith("Unsupported ratio: "):
-        payload = status_text.removeprefix("Unsupported ratio: ")
-        return payload.split(" - ", 1)[0].lower()
-    if status_text.startswith("Unsupported window: "):
-        payload = status_text.removeprefix("Unsupported window: ")
-        return payload.split(" - ", 1)[0].lower()
-    if status_text.startswith("Window detected but no matched profile: "):
-        payload = status_text.removeprefix("Window detected but no matched profile: ")
-        return payload.split(" - ", 1)[0].lower()
-    if status_text.startswith("Bind failed: "):
-        payload = status_text.removeprefix("Bind failed: ")
-        return payload.split(" - ", 1)[0].lower()
-    return ""
-
-
-def _binding_profile_for_window(selected_profile: Profile, window) -> Profile:
-    if not selected_profile.is_default:
-        return selected_profile
-
-    name = _profile_name_for_window(window)
-    return replace(
-        selected_profile,
-        name=name,
-        description=f"{name} windowed or borderless profile.",
-        match_exe=(),
-        match_title=(),
-        last_bound_exe="",
-        last_bound_title="",
-        file_path=None,
-        is_default=False,
-    )
-
-
-def _profile_name_for_window(window) -> str:
-    title = window.title.strip()
-    if title:
-        return title[:48]
-    stem = Path(window.exe_name).stem.strip()
-    if stem:
-        return stem[:48]
-    return "Game Profile"
-
-
-def _ensure_profile_templates(source_dir: Path, target_dir: Path) -> None:
-    target_dir.mkdir(parents=True, exist_ok=True)
-    for name in ("default.toml", "sample-third-person.toml"):
-        source = source_dir / name
-        target = target_dir / name
-        if source.exists() and not target.exists():
-            shutil.copy2(source, target)
-
-
-def _flow_speed(pattern: str, cue_energy: float) -> float:
-    energy = max(0.0, min(1.0, cue_energy))
-    if energy <= 0.001:
-        return 0.0
-    if pattern == "dynamic":
-        return 0.22 + energy * 4.6
-    return 0.12 + energy * 2.1

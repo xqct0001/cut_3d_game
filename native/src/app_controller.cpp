@@ -1,4 +1,7 @@
 #include "app_controller.h"
+#include "display_state.h"
+#include "profile_binding.h"
+#include "status_text.h"
 
 #include <QAction>
 #include <QApplication>
@@ -23,39 +26,6 @@ QString legacyAppStatePath()
     return QDir(QCoreApplication::applicationDirPath()).filePath("profiles/app-state.json");
 }
 
-QString extractExeName(const QString &statusText)
-{
-    auto takePayload = [&statusText](const QString &prefix) {
-        if (!statusText.startsWith(prefix)) {
-            return QString();
-        }
-        const QString payload = statusText.mid(prefix.size());
-        return payload.section(" - ", 0, 0).toLower();
-    };
-
-    for (const QString &prefix : {
-             QStringLiteral("Active: "),
-             QStringLiteral("Unsupported ratio: "),
-             QStringLiteral("Unsupported window: "),
-             QStringLiteral("Window detected but no matched profile: "),
-             QStringLiteral("Bind failed: "),
-         }) {
-        const QString value = takePayload(prefix);
-        if (!value.isEmpty()) {
-            return value;
-        }
-    }
-    return QString();
-}
-
-void appendUnique(QStringList &list, const QString &value)
-{
-    const QString normalized = value.trimmed().toLower();
-    if (!normalized.isEmpty() && !list.contains(normalized)) {
-        list.append(normalized);
-    }
-}
-
 QString normalizePattern(const QString &value)
 {
     const QString normalized = value.trimmed().toLower();
@@ -72,44 +42,6 @@ QString normalizeVisibility(const QString &value)
         return normalized;
     }
     return "standard";
-}
-
-QString normalizeLanguage(const QString &value)
-{
-    return value.trimmed().toLower() == "zh" ? "zh" : "en";
-}
-
-QString profileNameForWindow(const WindowInfo &window)
-{
-    const QString title = window.title.simplified();
-    if (!title.isEmpty()) {
-        return title.left(48);
-    }
-
-    const QString exeBase = QFileInfo(window.exeName).completeBaseName().simplified();
-    if (!exeBase.isEmpty()) {
-        return exeBase.left(48);
-    }
-    return QStringLiteral("Game Profile");
-}
-
-Profile bindingProfileForWindow(const Profile &selectedProfile, const WindowInfo &window)
-{
-    Profile profile = selectedProfile;
-    if (!profile.isDefault) {
-        return profile;
-    }
-
-    const QString name = profileNameForWindow(window);
-    profile.name = name;
-    profile.description = QString("%1 windowed or borderless profile.").arg(name);
-    profile.matchExe.clear();
-    profile.matchTitle.clear();
-    profile.lastBoundExe.clear();
-    profile.lastBoundTitle.clear();
-    profile.filePath.clear();
-    profile.isDefault = false;
-    return profile;
 }
 
 QIcon resolveAppIcon(QApplication *app)
@@ -284,7 +216,7 @@ void AppController::setYawGain(float value)
 
 void AppController::setUiLanguage(const QString &value)
 {
-    const QString normalized = normalizeLanguage(value);
+    const QString normalized = normalizeLanguageCode(value);
     if (m_appState.uiLanguage == normalized) {
         return;
     }
@@ -471,9 +403,9 @@ void AppController::bindCurrentWindow()
     }
 
     Profile profile = bindingProfileForWindow(m_selectedProfile, *window);
-    appendUnique(profile.matchExe, window->exeName);
+    appendUniqueNormalized(profile.matchExe, window->exeName);
     for (const QString &token : titleTokens(window->title)) {
-        appendUnique(profile.matchTitle, token);
+        appendUniqueNormalized(profile.matchTitle, token);
     }
     profile.lastBoundExe = window->exeName.toLower();
     profile.lastBoundTitle = window->title.toLower();
@@ -532,7 +464,7 @@ void AppController::tick()
     m_activeProfileName = view.activeProfileName;
     m_activeWindowTitle = view.activeWindowTitle;
     m_activeWindowMode = view.supportMode;
-    m_activeExeName = extractExeName(view.statusText);
+    m_activeExeName = extractExeNameFromStatus(view.statusText);
     m_overlayVisible = view.overlayVisible;
     m_overlayX = overlayRect.x;
     m_overlayY = overlayRect.y;
@@ -550,8 +482,26 @@ void AppController::tick()
     m_centerSafeRatio = view.cueState.center_safe_ratio;
     m_cueMotionX = view.cueState.motion_x;
     m_cueMotionY = view.cueState.motion_y;
-    m_cueEnergy = displayCueEnergy(baseCueEnergy);
-    applyDebugVisibility();
+    m_cueEnergy = scaledCueEnergy(baseCueEnergy, m_debugOverlayEnabled, m_selectedProfile.debugOpacityMultiplier);
+    CueDisplayValues cueValues;
+    cueValues.overlayVisible = m_overlayVisible;
+    cueValues.leftAlpha = m_leftAlpha;
+    cueValues.rightAlpha = m_rightAlpha;
+    cueValues.topAlpha = m_topAlpha;
+    cueValues.bottomAlpha = m_bottomAlpha;
+    cueValues.leftDensity = m_leftDensity;
+    cueValues.rightDensity = m_rightDensity;
+    cueValues.topDensity = m_topDensity;
+    cueValues.bottomDensity = m_bottomDensity;
+    applyDebugCueVisibility(cueValues, m_debugOverlayEnabled, m_selectedProfile.debugOpacityMultiplier);
+    m_leftAlpha = cueValues.leftAlpha;
+    m_rightAlpha = cueValues.rightAlpha;
+    m_topAlpha = cueValues.topAlpha;
+    m_bottomAlpha = cueValues.bottomAlpha;
+    m_leftDensity = cueValues.leftDensity;
+    m_rightDensity = cueValues.rightDensity;
+    m_topDensity = cueValues.topDensity;
+    m_bottomDensity = cueValues.bottomDensity;
 
     if (m_overlayWindow != nullptr) {
         applyOverlayGeometry(m_overlayWindow, overlayRect);
@@ -579,32 +529,6 @@ void AppController::advanceFlowPhase(double timestampMs, float cueEnergy)
         return;
     }
     m_flowPhase = std::fmod(m_flowPhase + static_cast<float>(dtMs / 1000.0 * speed), kTau);
-}
-
-float AppController::displayCueEnergy(float cueEnergy) const
-{
-    if (!m_debugOverlayEnabled) {
-        return cueEnergy;
-    }
-    return qMin(1.0f, cueEnergy * static_cast<float>(m_selectedProfile.debugOpacityMultiplier));
-}
-
-void AppController::applyDebugVisibility()
-{
-    if (!m_debugOverlayEnabled || !m_overlayVisible) {
-        return;
-    }
-
-    const float multiplier = static_cast<float>(m_selectedProfile.debugOpacityMultiplier);
-    const float densityScale = 0.9f + multiplier * 0.18f;
-    m_leftAlpha = qMin(1.0f, m_leftAlpha * multiplier);
-    m_rightAlpha = qMin(1.0f, m_rightAlpha * multiplier);
-    m_topAlpha = qMin(1.0f, m_topAlpha * multiplier);
-    m_bottomAlpha = qMin(1.0f, m_bottomAlpha * multiplier);
-    m_leftDensity = qMin(1.0f, m_leftDensity * densityScale);
-    m_rightDensity = qMin(1.0f, m_rightDensity * densityScale);
-    m_topDensity = qMin(1.0f, m_topDensity * densityScale);
-    m_bottomDensity = qMin(1.0f, m_bottomDensity * densityScale);
 }
 
 void AppController::setDisabledView()
@@ -637,26 +561,18 @@ void AppController::refreshTrayIcon()
     if (m_tray == nullptr) {
         return;
     }
-    const bool isChinese = m_appState.uiLanguage == "zh";
-    const QString enabledText = isChinese ? QStringLiteral("\u5DF2\u5F00\u542F") : QStringLiteral("Enabled");
-    const QString disabledText = isChinese ? QStringLiteral("\u5DF2\u5173\u95ED") : QStringLiteral("Disabled");
-    const QString modeText = isChinese
-        ? QStringLiteral("\u4EC5\u652F\u6301 16:9 \u7A97\u53E3\u5316/\u65E0\u8FB9\u6846")
-        : QStringLiteral("16:9 windowed/borderless only");
-    const QString clickHint = isChinese
-        ? QStringLiteral("\u5355\u51FB\u6258\u76D8\u56FE\u6807\u53EF\u6253\u5F00\u8BBE\u7F6E")
-        : QStringLiteral("Click the tray icon to open");
+    const TrayText text = trayTextForLanguage(m_appState.uiLanguage);
     m_tray->setToolTip(QString("Comfort Cues\n%1\n%2\n%3")
-                           .arg(m_appEnabled ? enabledText : disabledText, modeText, clickHint));
+                           .arg(m_appEnabled ? text.enabledText : text.disabledText, text.modeText, text.clickHint));
     if (m_enableAction != nullptr) {
-        m_enableAction->setText(isChinese ? QStringLiteral("\u5F00\u542F") : QStringLiteral("Enable"));
+        m_enableAction->setText(text.enableAction);
         m_enableAction->setEnabled(!m_appEnabled);
     }
     if (m_disableAction != nullptr) {
-        m_disableAction->setText(isChinese ? QStringLiteral("\u5173\u95ED") : QStringLiteral("Disable"));
+        m_disableAction->setText(text.disableAction);
         m_disableAction->setEnabled(m_appEnabled);
     }
     if (m_quitAction != nullptr) {
-        m_quitAction->setText(isChinese ? QStringLiteral("\u9000\u51FA") : QStringLiteral("Quit"));
+        m_quitAction->setText(text.quitAction);
     }
 }

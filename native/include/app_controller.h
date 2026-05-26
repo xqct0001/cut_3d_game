@@ -164,8 +164,6 @@ private:
     void tick();
     void persistAppState();
     void advanceFlowPhase(double timestampMs, float cueEnergy);
-    float displayCueEnergy(float cueEnergy) const;
-    void applyDebugVisibility();
     void setDisabledView();
     void refreshTrayIcon();
 

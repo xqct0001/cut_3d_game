@@ -2,6 +2,16 @@
   <qresource prefix="/">
     <file alias="src/comfort_cues/ui/qml/OverlayWindow.qml">../src/comfort_cues/ui/qml/OverlayWindow.qml</file>
     <file alias="src/comfort_cues/ui/qml/SettingsWindow.qml">../src/comfort_cues/ui/qml/SettingsWindow.qml</file>
+    <file alias="src/comfort_cues/ui/qml/i18n/Strings.js">../src/comfort_cues/ui/qml/i18n/Strings.js</file>
+    <file alias="src/comfort_cues/ui/qml/components/AdvancedPanel.qml">../src/comfort_cues/ui/qml/components/AdvancedPanel.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/ComfortControls.qml">../src/comfort_cues/ui/qml/components/ComfortControls.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/EdgeCueBand.qml">../src/comfort_cues/ui/qml/components/EdgeCueBand.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/LabeledSlider.qml">../src/comfort_cues/ui/qml/components/LabeledSlider.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/MetricRow.qml">../src/comfort_cues/ui/qml/components/MetricRow.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/ProfilePanel.qml">../src/comfort_cues/ui/qml/components/ProfilePanel.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/SessionPanel.qml">../src/comfort_cues/ui/qml/components/SessionPanel.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/SimulatorPanel.qml">../src/comfort_cues/ui/qml/components/SimulatorPanel.qml</file>
+    <file alias="src/comfort_cues/ui/qml/components/StatusHeader.qml">../src/comfort_cues/ui/qml/components/StatusHeader.qml</file>
     <file alias="src/comfort_cues/ui/assets/comfort-cues.ico">../src/comfort_cues/ui/assets/comfort-cues.ico</file>
     <file alias="src/comfort_cues/ui/assets/tray-dog.ico">../src/comfort_cues/ui/assets/tray-dog.ico</file>
     <file alias="src/comfort_cues/ui/assets/tray-dog.jpg">../src/comfort_cues/ui/assets/tray-dog.jpg</file>

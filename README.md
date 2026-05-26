@@ -65,6 +65,17 @@ Only `windowed` and `borderless-windowed` games are supported. `Exclusive fullsc
 The native build expects a Qt 6 MinGW toolchain on `PATH`, including `qmake`, `mingw32-make`, and a deploy tool exposed as `windeployqt`, `windeployqt6`, or `windeployqt-qt6`.
 Run `scripts\check_native_toolchain.ps1` first if the machine has multiple Qt or MinGW installs.
 
+## UI And Controller Layout
+
+The QML UI is split by responsibility under `src/comfort_cues/ui/qml/`:
+
+- `SettingsWindow.qml` composes small settings panels.
+- `OverlayWindow.qml` composes edge cue bands.
+- `components/` contains reusable settings and overlay pieces.
+- `i18n/Strings.js` contains English/Chinese UI strings and status formatting.
+
+The Python reference controller delegates pure helper behavior to `src/comfort_cues/controller/`. The native controller mirrors the same split through `native/include/*` and `native/src/*` helper files for status text, profile binding, and display cue scaling.
+
 ## VSCode Tasks
 
 Open the workspace in VSCode and run:

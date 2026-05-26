@@ -52,6 +52,9 @@ Current behavior and boundaries:
 - manual smoke forces the settings window visible through `CC_FORCE_SHOW_SETTINGS=1`
 - normal deployed runs still respect the persisted `launch_to_tray` state
 - UI language is now persisted as `ui_language` and can be switched between `en` and `zh`
+- Settings UI strings now live in `src/comfort_cues/ui/qml/i18n/Strings.js` and should stay valid UTF-8.
+- Settings and overlay QML are split into focused components under `src/comfort_cues/ui/qml/components/`.
+- Python controller helper logic lives under `src/comfort_cues/controller/`; native helper equivalents live in `native/include/status_text.h`, `native/include/profile_binding.h`, and `native/include/display_state.h`.
 - manual smoke must produce `manual-runtime.log`, `manual-runtime.pid`, and `data/app-state.json`
 - manual smoke results are summarized through `scripts\summarize_manual_runtime.ps1`
 
@@ -91,4 +94,3 @@ The current launcher addresses that by:
 - Do not restore any old self-extracting `single exe` packaging path.
 - Treat the shared Qt deployment as `exe + runtime directory`, not a true single-file release.
 - Keep documentation updated whenever runtime behavior or scripts change.
-

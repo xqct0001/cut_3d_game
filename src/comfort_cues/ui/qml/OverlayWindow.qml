@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
+import "components"
 
 Window {
     id: overlayWindow
@@ -21,21 +22,21 @@ Window {
     readonly property real latticeStepX: dotBaseSize * (moreDots ? 1.75 : 2.05)
     readonly property real latticeStepY: latticeStepX * 0.78
     readonly property real cueTravel: Math.min(width, height) * (dynamicPattern ? 0.048 : 0.030)
-    readonly property real ambientBaseAlpha: controller.debugOverlayEnabled ? 0.18 : 0.05
-    readonly property real ambientBaseDensity: controller.debugOverlayEnabled ? 0.38 : 0.16
-    readonly property real leftStrength: overlayWindow.strength(controller.leftAlpha)
-    readonly property real rightStrength: overlayWindow.strength(controller.rightAlpha)
-    readonly property real topStrength: overlayWindow.strength(controller.topAlpha)
-    readonly property real bottomStrength: overlayWindow.strength(controller.bottomAlpha)
-    readonly property real topBandDrive: overlayWindow.clamp01(Math.max(topStrength, Math.max(leftStrength, rightStrength) * 0.28, bottomStrength * 0.10))
-    readonly property real leftBandDrive: overlayWindow.clamp01(Math.max(leftStrength, topStrength * 0.20, bottomStrength * 0.10))
-    readonly property real rightBandDrive: overlayWindow.clamp01(Math.max(rightStrength, topStrength * 0.20, bottomStrength * 0.10))
-    readonly property real topAmbientAlpha: overlayWindow.ambientAlpha(overlayWindow.topBandDrive, 0.72)
-    readonly property real leftAmbientAlpha: overlayWindow.ambientAlpha(overlayWindow.leftBandDrive, 1.0)
-    readonly property real rightAmbientAlpha: overlayWindow.ambientAlpha(overlayWindow.rightBandDrive, 1.0)
-    readonly property real topAccentAlpha: overlayWindow.accentAlpha(overlayWindow.topBandDrive, 0.72)
-    readonly property real leftAccentAlpha: overlayWindow.accentAlpha(overlayWindow.leftBandDrive, 1.0)
-    readonly property real rightAccentAlpha: overlayWindow.accentAlpha(overlayWindow.rightBandDrive, 1.0)
+    readonly property real ambientBaseAlpha: controller.debugOverlayEnabled ? 0.18 : 0.032
+    readonly property real ambientBaseDensity: controller.debugOverlayEnabled ? 0.38 : 0.12
+    readonly property real leftStrength: strength(controller.leftAlpha)
+    readonly property real rightStrength: strength(controller.rightAlpha)
+    readonly property real topStrength: strength(controller.topAlpha)
+    readonly property real bottomStrength: strength(controller.bottomAlpha)
+    readonly property real topBandDrive: clamp01(Math.max(topStrength, Math.max(leftStrength, rightStrength) * 0.28, bottomStrength * 0.10))
+    readonly property real leftBandDrive: clamp01(Math.max(leftStrength, topStrength * 0.20, bottomStrength * 0.10))
+    readonly property real rightBandDrive: clamp01(Math.max(rightStrength, topStrength * 0.20, bottomStrength * 0.10))
+    readonly property real topAmbientAlpha: ambientAlpha(topBandDrive, 0.72)
+    readonly property real leftAmbientAlpha: ambientAlpha(leftBandDrive, 1.0)
+    readonly property real rightAmbientAlpha: ambientAlpha(rightBandDrive, 1.0)
+    readonly property real topAccentAlpha: accentAlpha(topBandDrive, 0.72)
+    readonly property real leftAccentAlpha: accentAlpha(leftBandDrive, 1.0)
+    readonly property real rightAccentAlpha: accentAlpha(rightBandDrive, 1.0)
 
     function currentLanguage() {
         return controller.uiLanguage === "zh" ? "zh" : "en"
@@ -50,7 +51,7 @@ Window {
     }
 
     function ambientAlpha(drive, emphasis) {
-        return clamp01(ambientBaseAlpha * emphasis + drive * 0.08 * emphasis)
+        return clamp01(ambientBaseAlpha * emphasis + drive * 0.07 * emphasis)
     }
 
     function ambientDensity(drive, density, emphasis) {
@@ -63,14 +64,6 @@ Window {
 
     function accentDensity(drive, density) {
         return clamp01(drive * 0.56 + density * 0.46)
-    }
-
-    function wave(seed, index) {
-        return Math.sin(controller.flowPhase * 1.15 + seed + index * 0.31)
-    }
-
-    function edgeCount(span, step) {
-        return Math.max(3, Math.floor(span / Math.max(6, step)))
     }
 
     Rectangle {
@@ -100,150 +93,69 @@ Window {
         }
     }
 
-    Item {
-        id: topBand
+    EdgeCueBand {
+        objectName: "topCueBand"
+        orientation: "horizontal"
         x: overlayWindow.width * 0.22
         y: overlayWindow.height * 0.085
         width: overlayWindow.width * 0.56
         height: overlayWindow.height * 0.09
-        visible: overlayWindow.topAmbientAlpha > 0.01 || overlayWindow.topAccentAlpha > 0.01
-
-        readonly property int ambientCount: overlayWindow.edgeCount(width, overlayWindow.latticeStepX)
-        readonly property int accentCount: ambientCount
-        readonly property real ambientDensityValue: overlayWindow.ambientDensity(overlayWindow.topBandDrive, controller.topDensity, 0.84)
-        readonly property real accentDensityValue: overlayWindow.accentDensity(overlayWindow.topBandDrive, controller.topDensity)
-
-        Repeater {
-            model: topBand.ambientCount
-
-            delegate: Rectangle {
-                width: overlayWindow.dotBaseSize * (0.72 + topBand.ambientDensityValue * 0.14)
-                height: width
-                radius: width / 2
-                color: overlayWindow.cueHaloColor
-                opacity: overlayWindow.topAmbientAlpha * (0.75 + (index % 3) * 0.08)
-                x: index * (topBand.width - width) / Math.max(1, topBand.ambientCount - 1)
-                   + overlayWindow.wave(0.20, index) * overlayWindow.cueTravel * 0.05
-                   + controller.cueMotionX * overlayWindow.cueTravel * 0.05
-                y: topBand.height * 0.50 - height / 2
-                   + overlayWindow.wave(0.85, index) * overlayWindow.cueTravel * 0.03
-            }
-        }
-
-        Repeater {
-            model: topBand.accentCount
-
-            delegate: Rectangle {
-                width: overlayWindow.dotBaseSize * (0.88 + topBand.accentDensityValue * 0.20)
-                height: width
-                radius: width / 2
-                color: overlayWindow.cueColor
-                opacity: overlayWindow.topAccentAlpha * (0.70 + (index % 4) * 0.07)
-                x: index * (topBand.width - width) / Math.max(1, topBand.accentCount - 1)
-                   + overlayWindow.wave(1.20, index) * overlayWindow.cueTravel * 0.18
-                   + controller.cueMotionX * overlayWindow.cueTravel * 0.28
-                y: topBand.height * 0.50 - height / 2
-                   + overlayWindow.wave(1.65, index) * overlayWindow.cueTravel * 0.08
-                   + controller.cueMotionY * overlayWindow.cueTravel * 0.08
-            }
-        }
+        cueColor: overlayWindow.cueColor
+        cueHaloColor: overlayWindow.cueHaloColor
+        dotBaseSize: overlayWindow.dotBaseSize
+        cueTravel: overlayWindow.cueTravel
+        ambientAlpha: overlayWindow.topAmbientAlpha
+        accentAlpha: overlayWindow.topAccentAlpha
+        ambientDensity: overlayWindow.ambientDensity(overlayWindow.topBandDrive, controller.topDensity, 0.84)
+        accentDensity: overlayWindow.accentDensity(overlayWindow.topBandDrive, controller.topDensity)
+        flowPhase: controller.flowPhase
+        motionX: controller.cueMotionX
+        motionY: controller.cueMotionY
+        seed: 0.2
+        step: overlayWindow.latticeStepX
     }
 
-    Item {
-        id: leftBand
+    EdgeCueBand {
+        objectName: "leftCueBand"
+        orientation: "vertical"
         x: overlayWindow.width * 0.025
         y: overlayWindow.height * 0.28
         width: overlayWindow.width * 0.16
         height: overlayWindow.height * 0.40
-        visible: overlayWindow.leftAmbientAlpha > 0.01 || overlayWindow.leftAccentAlpha > 0.01
-
-        readonly property int ambientCount: overlayWindow.edgeCount(height, overlayWindow.latticeStepY)
-        readonly property int accentCount: ambientCount
-        readonly property real ambientDensityValue: overlayWindow.ambientDensity(overlayWindow.leftBandDrive, controller.leftDensity, 1.0)
-        readonly property real accentDensityValue: overlayWindow.accentDensity(overlayWindow.leftBandDrive, controller.leftDensity)
-
-        Repeater {
-            model: leftBand.ambientCount
-
-            delegate: Rectangle {
-                width: overlayWindow.dotBaseSize * (0.74 + leftBand.ambientDensityValue * 0.14)
-                height: width
-                radius: width / 2
-                color: overlayWindow.cueHaloColor
-                opacity: overlayWindow.leftAmbientAlpha * (0.76 + (index % 3) * 0.07)
-                x: leftBand.width * 0.52 - width / 2
-                   + overlayWindow.wave(0.35, index) * overlayWindow.cueTravel * 0.05
-                y: index * (leftBand.height - height) / Math.max(1, leftBand.ambientCount - 1)
-                   + overlayWindow.wave(1.10, index) * overlayWindow.cueTravel * 0.05
-                   + controller.cueMotionY * overlayWindow.cueTravel * 0.05
-            }
-        }
-
-        Repeater {
-            model: leftBand.accentCount
-
-            delegate: Rectangle {
-                width: overlayWindow.dotBaseSize * (0.90 + leftBand.accentDensityValue * 0.24)
-                height: width
-                radius: width / 2
-                color: overlayWindow.cueColor
-                opacity: overlayWindow.leftAccentAlpha * (0.72 + (index % 4) * 0.06)
-                x: leftBand.width * 0.52 - width / 2
-                   + overlayWindow.wave(1.55, index) * overlayWindow.cueTravel * 0.14
-                   + controller.cueMotionX * overlayWindow.cueTravel * 0.52
-                y: index * (leftBand.height - height) / Math.max(1, leftBand.accentCount - 1)
-                   + overlayWindow.wave(2.00, index) * overlayWindow.cueTravel * 0.16
-                   + controller.cueMotionY * overlayWindow.cueTravel * 0.14
-            }
-        }
+        cueColor: overlayWindow.cueColor
+        cueHaloColor: overlayWindow.cueHaloColor
+        dotBaseSize: overlayWindow.dotBaseSize
+        cueTravel: overlayWindow.cueTravel
+        ambientAlpha: overlayWindow.leftAmbientAlpha
+        accentAlpha: overlayWindow.leftAccentAlpha
+        ambientDensity: overlayWindow.ambientDensity(overlayWindow.leftBandDrive, controller.leftDensity, 1.0)
+        accentDensity: overlayWindow.accentDensity(overlayWindow.leftBandDrive, controller.leftDensity)
+        flowPhase: controller.flowPhase
+        motionX: controller.cueMotionX
+        motionY: controller.cueMotionY
+        seed: 0.35
+        step: overlayWindow.latticeStepY
     }
 
-    Item {
-        id: rightBand
+    EdgeCueBand {
+        objectName: "rightCueBand"
+        orientation: "vertical"
         x: overlayWindow.width * 0.815
         y: overlayWindow.height * 0.28
         width: overlayWindow.width * 0.16
         height: overlayWindow.height * 0.40
-        visible: overlayWindow.rightAmbientAlpha > 0.01 || overlayWindow.rightAccentAlpha > 0.01
-
-        readonly property int ambientCount: overlayWindow.edgeCount(height, overlayWindow.latticeStepY)
-        readonly property int accentCount: ambientCount
-        readonly property real ambientDensityValue: overlayWindow.ambientDensity(overlayWindow.rightBandDrive, controller.rightDensity, 1.0)
-        readonly property real accentDensityValue: overlayWindow.accentDensity(overlayWindow.rightBandDrive, controller.rightDensity)
-
-        Repeater {
-            model: rightBand.ambientCount
-
-            delegate: Rectangle {
-                width: overlayWindow.dotBaseSize * (0.74 + rightBand.ambientDensityValue * 0.14)
-                height: width
-                radius: width / 2
-                color: overlayWindow.cueHaloColor
-                opacity: overlayWindow.rightAmbientAlpha * (0.76 + (index % 3) * 0.07)
-                x: rightBand.width * 0.48 - width / 2
-                   + overlayWindow.wave(0.65, index) * overlayWindow.cueTravel * 0.05
-                y: index * (rightBand.height - height) / Math.max(1, rightBand.ambientCount - 1)
-                   + overlayWindow.wave(1.45, index) * overlayWindow.cueTravel * 0.05
-                   + controller.cueMotionY * overlayWindow.cueTravel * 0.05
-            }
-        }
-
-        Repeater {
-            model: rightBand.accentCount
-
-            delegate: Rectangle {
-                width: overlayWindow.dotBaseSize * (0.90 + rightBand.accentDensityValue * 0.24)
-                height: width
-                radius: width / 2
-                color: overlayWindow.cueColor
-                opacity: overlayWindow.rightAccentAlpha * (0.72 + (index % 4) * 0.06)
-                x: rightBand.width * 0.48 - width / 2
-                   + overlayWindow.wave(1.85, index) * overlayWindow.cueTravel * 0.14
-                   + controller.cueMotionX * overlayWindow.cueTravel * 0.52
-                y: index * (rightBand.height - height) / Math.max(1, rightBand.accentCount - 1)
-                   + overlayWindow.wave(2.30, index) * overlayWindow.cueTravel * 0.16
-                   + controller.cueMotionY * overlayWindow.cueTravel * 0.14
-            }
-        }
+        cueColor: overlayWindow.cueColor
+        cueHaloColor: overlayWindow.cueHaloColor
+        dotBaseSize: overlayWindow.dotBaseSize
+        cueTravel: overlayWindow.cueTravel
+        ambientAlpha: overlayWindow.rightAmbientAlpha
+        accentAlpha: overlayWindow.rightAccentAlpha
+        ambientDensity: overlayWindow.ambientDensity(overlayWindow.rightBandDrive, controller.rightDensity, 1.0)
+        accentDensity: overlayWindow.accentDensity(overlayWindow.rightBandDrive, controller.rightDensity)
+        flowPhase: controller.flowPhase
+        motionX: controller.cueMotionX
+        motionY: controller.cueMotionY
+        seed: 0.65
+        step: overlayWindow.latticeStepY
     }
 }

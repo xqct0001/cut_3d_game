@@ -39,10 +39,44 @@ The Python track is not the primary product direction, but it is still part of t
 
 - Python package root: `src/comfort_cues/`
 - Entry point: `comfort_cues.main:main` from `pyproject.toml`
+- Controller helper modules: `src/comfort_cues/controller/`
+- QML shell and components: `src/comfort_cues/ui/qml/`
 - Packaging spec: `packaging/python/ComfortCues.spec`
 - Test suite: `tests/`
 
 This track should not be treated as dead code unless the build, packaging, and test expectations are explicitly removed.
+
+## UI Layout
+
+The active QML UI is intentionally componentized:
+
+- `src/comfort_cues/ui/qml/SettingsWindow.qml`
+  Settings window shell and panel composition.
+- `src/comfort_cues/ui/qml/OverlayWindow.qml`
+  Transparent overlay shell and cue-band composition.
+- `src/comfort_cues/ui/qml/components/`
+  Focused QML panels, shared slider rows, metric rows, and edge cue bands.
+- `src/comfort_cues/ui/qml/i18n/Strings.js`
+  English/Chinese labels plus status and mode formatting.
+
+Keep QML files focused. Do not fold translations, repeated slider markup, and panel layout back into the window shells.
+
+## Controller Helper Layout
+
+Python reference controller helpers live under `src/comfort_cues/controller/`:
+
+- `status.py`: status-string parsing.
+- `profile_binding.py`: bind-current-window profile creation helpers.
+- `display.py`: flow speed, debug scaling, and disabled display defaults.
+- `profile_templates.py`: profile template copying.
+
+Native helper equivalents live under `native/include/` and `native/src/`:
+
+- `status_text.*`
+- `profile_binding.*`
+- `display_state.*`
+
+Keep Qt-facing controller properties and slots in `AppController`, but keep pure helper logic in these smaller files.
 
 ## Documentation Layout
 

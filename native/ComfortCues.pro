@@ -41,11 +41,14 @@ HEADERS += \
     $$PWD/include/app_controller.h \
     $$PWD/include/app_state.h \
     $$PWD/include/cc_core.h \
+    $$PWD/include/display_state.h \
     $$PWD/include/input_source.h \
     $$PWD/include/models.h \
     $$PWD/include/overlay_utils.h \
+    $$PWD/include/profile_binding.h \
     $$PWD/include/profile_store.h \
     $$PWD/include/runtime_service.h \
+    $$PWD/include/status_text.h \
     $$PWD/include/window_tracker.h
 
 SOURCES += \
@@ -53,11 +56,14 @@ SOURCES += \
     $$PWD/src/app_state.cpp \
     $$PWD/src/cc_cues.c \
     $$PWD/src/cc_signal.c \
+    $$PWD/src/display_state.cpp \
     $$PWD/src/input_source.cpp \
     $$PWD/src/main.cpp \
     $$PWD/src/overlay_utils.cpp \
+    $$PWD/src/profile_binding.cpp \
     $$PWD/src/profile_store.cpp \
     $$PWD/src/runtime_service.cpp \
+    $$PWD/src/status_text.cpp \
     $$PWD/src/window_tracker.cpp
 
 RESOURCES += $$PWD/resources.qrc

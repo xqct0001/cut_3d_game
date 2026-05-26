@@ -169,6 +169,9 @@ def _copy_qml_tree(root: Path) -> None:
     assets_dst.mkdir(parents=True)
     shutil.copy2(qml_src / "OverlayWindow.qml", qml_dst / "OverlayWindow.qml")
     shutil.copy2(qml_src / "SettingsWindow.qml", qml_dst / "SettingsWindow.qml")
+    for child_dir in ("components", "i18n"):
+        if (qml_src / child_dir).exists():
+            shutil.copytree(qml_src / child_dir, qml_dst / child_dir)
     for asset_name in ("tray-dog.jpg", "comfort-cues.ico"):
         if (assets_src / asset_name).exists():
             shutil.copy2(assets_src / asset_name, assets_dst / asset_name)
@@ -203,6 +206,12 @@ def test_create_engine_loads_overlay_and_settings_windows(tmp_path: Path):
     assert settings.property("height") == 640
     assert settings.property("minimumWidth") == 720
     assert settings.property("minimumHeight") == 560
+    assert settings.findChild(QtCore.QObject, "statusHeader") is not None
+    assert settings.findChild(QtCore.QObject, "sessionPanel") is not None
+    assert settings.findChild(QtCore.QObject, "comfortControls") is not None
+    assert settings.findChild(QtCore.QObject, "profilePanel") is not None
+    assert settings.findChild(QtCore.QObject, "advancedPanel") is not None
+    assert settings.findChild(QtCore.QObject, "simulatorPanel") is not None
     assert settings.findChild(QtCore.QObject, "windowSummaryLabel") is not None
     assert settings.findChild(QtCore.QObject, "quickStartCard") is not None
     assert settings.findChild(QtCore.QObject, "enableButton") is not None
@@ -238,6 +247,12 @@ def test_overlay_keeps_ambient_points_visible_when_idle():
     _, engine, overlay = _load_overlay(FakeController())
 
     assert len(engine.rootObjects()) == 1
+    assert overlay.findChild(QtCore.QObject, "topCueBand") is not None
+    assert overlay.findChild(QtCore.QObject, "leftCueBand") is not None
+    assert overlay.findChild(QtCore.QObject, "rightCueBand") is not None
+    assert 0.0 < overlay.property("leftAmbientAlpha") < 0.05
+    assert 0.0 < overlay.property("rightAmbientAlpha") < 0.05
+    assert 0.0 < overlay.property("topAmbientAlpha") < 0.05
     assert overlay.property("leftAmbientAlpha") > 0.0
     assert overlay.property("rightAmbientAlpha") > 0.0
     assert overlay.property("topAmbientAlpha") > 0.0
