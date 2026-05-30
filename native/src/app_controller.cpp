@@ -62,8 +62,11 @@ QIcon resolveAppIcon(QApplication *app)
 
 QString windowDebugLine(const WindowInfo &window)
 {
-    return QString("%1 title=\"%2\" mode=%3 supported=%4 rect=%5,%6 %7x%8 reason=\"%9\"")
+    return QString("%1 class=%2 score=%3 minimized=%4 title=\"%5\" mode=%6 supported=%7 rect=%8,%9 %10x%11 reason=\"%12\"")
         .arg(window.exeName,
+             window.windowClass,
+             QString::number(window.selectionScore),
+             window.minimized ? QStringLiteral("true") : QStringLiteral("false"),
              window.title.left(80),
              window.mode,
              window.supported ? QStringLiteral("true") : QStringLiteral("false"))

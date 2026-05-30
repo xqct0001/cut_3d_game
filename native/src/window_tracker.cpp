@@ -20,6 +20,147 @@ static constexpr DWORD kProcessQueryLimitedInformation = 0x1000;
 static constexpr long kWsCaption = 0x00C00000L;
 static constexpr long kWsPopup = 0x80000000L;
 
+bool containsAny(const QString &value, std::initializer_list<const char *> needles)
+{
+    const QString lowered = value.toLower();
+    for (const char *needle : needles) {
+        if (lowered.contains(QLatin1String(needle))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool equalsAny(const QString &value, std::initializer_list<const char *> candidates)
+{
+    const QString lowered = value.toLower();
+    for (const char *candidate : candidates) {
+        if (lowered == QLatin1String(candidate)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isKnownDesktopApp(const QString &exeName, const QString &windowClass, const QString &title)
+{
+    if (equalsAny(exeName, {
+            "applicationframehost.exe",
+            "cmd.exe",
+            "codex.exe",
+            "conhost.exe",
+            "chrome.exe",
+            "explorer.exe",
+            "firefox.exe",
+            "ikuuuvpn.exe",
+            "msedge.exe",
+            "msedgewebview2.exe",
+            "notepad.exe",
+            "powershell.exe",
+            "steam.exe",
+            "steamwebhelper.exe",
+            "tabtip.exe",
+            "textinputhost.exe",
+            "widgets.exe",
+            "windowsterminal.exe",
+            "winword.exe",
+        })) {
+        return true;
+    }
+
+    if (containsAny(windowClass, {
+            "cabinetwclass",
+            "chrome_widgetwin",
+            "consolewindowclass",
+            "opusapp",
+            "progman",
+            "shell_traywnd",
+            "windowsdashboard",
+        })) {
+        return true;
+    }
+
+    return containsAny(title, {
+        "codex",
+        "file explorer",
+        "文件资源管理器",
+        "program manager",
+        "steam",
+    });
+}
+
+bool isGameWindowClass(const QString &windowClass)
+{
+    return containsAny(windowClass, {
+        "cryengine",
+        "glfw",
+        "lwjgl",
+        "sdl_app",
+        "unitywndclass",
+        "unrealwindow",
+        "valve001",
+    });
+}
+
+bool isKnownGameExe(const QString &exeName)
+{
+    return equalsAny(exeName, {
+        "aces.exe",
+        "bg3.exe",
+        "cs2.exe",
+        "cyberpunk2077.exe",
+        "dota2.exe",
+        "eldenring.exe",
+        "ffxiv_dx11.exe",
+        "forzahorizon5.exe",
+        "gta5.exe",
+        "helldivers2.exe",
+        "minecraft.exe",
+        "overwatch.exe",
+        "r5apex.exe",
+        "re4.exe",
+        "re8.exe",
+        "starfield.exe",
+        "valorant-win64-shipping.exe",
+        "witcher3.exe",
+    });
+}
+
+int areaScore(const Rect &rect)
+{
+    const long long area = static_cast<long long>(qMax(0, rect.width)) * static_cast<long long>(qMax(0, rect.height));
+    return static_cast<int>(qMin<long long>(area / 20000, 90));
+}
+
+int gameWindowScore(const WindowInfo &window)
+{
+    if (!window.supported) {
+        return -10000 + areaScore(window.rect);
+    }
+
+    int score = areaScore(window.rect);
+    if (isKnownDesktopApp(window.exeName, window.windowClass, window.title)) {
+        score -= 180;
+    } else {
+        score += 35;
+    }
+
+    if (isGameWindowClass(window.windowClass)) {
+        score += 120;
+    }
+    if (isKnownGameExe(window.exeName)) {
+        score += 140;
+    }
+    if (window.mode == QLatin1String("fullscreen") || window.mode == QLatin1String("borderless")) {
+        score += 35;
+    }
+    if (window.title.trimmed().isEmpty()) {
+        score -= 25;
+    }
+
+    return score;
+}
+
 #ifdef Q_OS_WIN
 Rect rectFromWin32(const RECT &rect)
 {
@@ -45,6 +186,16 @@ Rect windowRect(HWND hwnd)
     RECT rect{};
     GetWindowRect(hwnd, &rect);
     return rectFromWin32(rect);
+}
+
+Rect restoredWindowRect(HWND hwnd)
+{
+    WINDOWPLACEMENT placement{};
+    placement.length = sizeof(placement);
+    if (!GetWindowPlacement(hwnd, &placement)) {
+        return {};
+    }
+    return rectFromWin32(placement.rcNormalPosition);
 }
 
 Rect clientRect(HWND hwnd)
@@ -104,7 +255,7 @@ QString processPath(DWORD pid)
     return QDir::fromNativeSeparators(QString::fromWCharArray(buffer));
 }
 
-bool ignoredWindow(HWND hwnd, DWORD ownPid)
+bool ignoredWindow(HWND hwnd, DWORD ownPid, bool includeMinimized)
 {
     if (hwnd == nullptr || !IsWindowVisible(hwnd)) {
         return true;
@@ -120,21 +271,25 @@ bool ignoredWindow(HWND hwnd, DWORD ownPid)
     if (cls == "Progman" || cls == "WorkerW" || cls == "Shell_TrayWnd") {
         return true;
     }
-    if (isCloaked(hwnd) || isMinimized(hwnd)) {
+    if (isCloaked(hwnd)) {
+        return true;
+    }
+    if (!includeMinimized && isMinimized(hwnd)) {
         return true;
     }
     return false;
 }
 
-std::optional<WindowInfo> windowInfoFromHwnd(HWND hwnd, DWORD ownPid)
+std::optional<WindowInfo> windowInfoFromHwnd(HWND hwnd, DWORD ownPid, bool includeMinimized)
 {
-    if (ignoredWindow(hwnd, ownPid)) {
+    if (ignoredWindow(hwnd, ownPid, includeMinimized)) {
         return std::nullopt;
     }
 
     DWORD pid = 0;
     GetWindowThreadProcessId(hwnd, &pid);
-    const Rect frameRect = windowRect(hwnd);
+    const bool minimized = isMinimized(hwnd);
+    const Rect frameRect = minimized ? restoredWindowRect(hwnd) : windowRect(hwnd);
     const Rect client = clientRect(hwnd);
     const Rect effectiveRect = client.isEmpty() ? frameRect : client;
     const Rect monitor = monitorRect(hwnd);
@@ -152,6 +307,7 @@ std::optional<WindowInfo> windowInfoFromHwnd(HWND hwnd, DWORD ownPid)
 
     const QString exePath = processPath(pid);
     QFileInfo fileInfo(exePath);
+    const QString cls = className(hwnd);
 
     WindowInfo info;
     info.hwnd = reinterpret_cast<qintptr>(hwnd);
@@ -159,11 +315,14 @@ std::optional<WindowInfo> windowInfoFromHwnd(HWND hwnd, DWORD ownPid)
     info.title = windowText(hwnd);
     info.exeName = fileInfo.fileName().isEmpty() ? QString("pid-%1").arg(pid) : fileInfo.fileName().toLower();
     info.exePath = exePath;
+    info.windowClass = cls;
     info.rect = effectiveRect;
     info.monitorRect = monitor;
-    info.mode = finalMode;
+    info.mode = minimized ? QStringLiteral("minimized") : finalMode;
     info.supported = supported;
     info.reason = reason;
+    info.minimized = minimized;
+    info.selectionScore = gameWindowScore(info);
     return info;
 }
 
@@ -175,7 +334,7 @@ struct WindowSearch {
 BOOL CALLBACK collectVisibleWindow(HWND hwnd, LPARAM lParam)
 {
     auto *search = reinterpret_cast<WindowSearch *>(lParam);
-    const std::optional<WindowInfo> info = windowInfoFromHwnd(hwnd, search->ownPid);
+    const std::optional<WindowInfo> info = windowInfoFromHwnd(hwnd, search->ownPid, true);
     if (info.has_value()) {
         search->windows.append(*info);
     }
@@ -224,7 +383,7 @@ std::optional<WindowInfo> ForegroundWindowTracker::snapshot() const
 #ifndef Q_OS_WIN
     return std::nullopt;
 #else
-    return windowInfoFromHwnd(GetForegroundWindow(), static_cast<DWORD>(m_ownPid));
+    return windowInfoFromHwnd(GetForegroundWindow(), static_cast<DWORD>(m_ownPid), false);
 #endif
 }
 
@@ -254,7 +413,9 @@ std::optional<WindowInfo> ForegroundWindowTracker::bestVisibleWindow() const
 
     for (const WindowInfo &window : windows) {
         if (window.supported) {
-            if (!bestSupported.has_value() || area(window) > area(*bestSupported)) {
+            if (!bestSupported.has_value()
+                || window.selectionScore > bestSupported->selectionScore
+                || (window.selectionScore == bestSupported->selectionScore && area(window) > area(*bestSupported))) {
                 bestSupported = window;
             }
         } else if (!bestUnsupported.has_value() || area(window) > area(*bestUnsupported)) {

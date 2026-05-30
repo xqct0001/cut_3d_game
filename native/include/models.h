@@ -22,6 +22,9 @@ struct WindowInfo {
     QString title;
     QString exeName;
     QString exePath;
+    QString windowClass;
+    int selectionScore = 0;
+    bool minimized = false;
     Rect rect;
     Rect monitorRect;
     QString mode;

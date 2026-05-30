@@ -54,6 +54,7 @@ var en = {
     resetSimulator: "Reset simulator",
     borderless: "Borderless",
     fullscreen: "Fullscreen",
+    minimized: "Minimized",
     windowed: "Windowed",
     unsupported: "Unavailable",
     simulatorMode: "Simulator",
@@ -127,6 +128,7 @@ var zh = {
     resetSimulator: "重置模拟器",
     borderless: "无边框",
     fullscreen: "全屏",
+    minimized: "已最小化",
     windowed: "窗口化",
     unsupported: "不可用",
     simulatorMode: "模拟器",
@@ -176,6 +178,7 @@ function translateStatus(language, text) {
 function modeSummary(language, mode) {
     if (mode === "borderless") return tr(language, "borderless")
     if (mode === "fullscreen") return tr(language, "fullscreen")
+    if (mode === "minimized") return tr(language, "minimized")
     if (mode === "windowed") return tr(language, "windowed")
     if (mode === "unsupported") return tr(language, "unsupported")
     if (mode === "simulator") return tr(language, "simulatorMode")
