@@ -11,12 +11,11 @@ The first version targets windowed and borderless-windowed first/third-person ga
 
 ## Project Layout
 
-- `native/`: primary Qt/QML application track and canonical native project file `native/ComfortCues.pro`
-- `src/comfort_cues/`: Python reference implementation kept for parity checks and fallback packaging work
-- `tests/`: Python-side regression coverage for the reference track and shared behavior
+- `native/`: primary Qt/QML application and canonical project file `native/ComfortCues.pro`
+- `src/comfort_cues/ui/qml/`: QML settings and overlay UI loaded by the native app
+- `src/comfort_cues/ui/assets/`: icons and image assets used by the native app
 - `scripts/`: build, deploy, smoke, and release automation
 - `docs/`: runtime guides plus developer handoff notes under `docs/dev/`
-- `packaging/python/ComfortCues.spec`: Python packaging entry point
 
 For current developer-facing handoff notes, use `docs/dev/README.md`.
 For a fuller directory-by-directory breakdown, use `docs/project-structure.md`.
@@ -41,7 +40,7 @@ scripts\make_release.ps1
 `build_native.ps1` + `deploy_native.ps1` are the development/runtime path. They produce a runnable directory, not a true single-file release.
 The deploy script now also writes `qt.conf` and copies extra Conda/MSVC runtime DLLs such as `zstd.dll`, `libcrypto-3-x64.dll`, `libssl-3-x64.dll`, and `Qt5QmlWorkerScript_conda.dll` so `dist/native/ComfortCues.exe` can run directly without relying on the shell's PATH.
 `smoke_native_runtime.ps1` runs the deployed native executable twice in an isolated data directory and checks first-run state persistence, profile save, and enable/disable persistence without touching the user's real app data.
-The smoke run is intentionally headless and state-only: it skips QML/window lifecycle coverage, writes per-run progress logs under `build/native-smoke/<config>/`, and leaves QML structure/runtime checks to `uv run pytest`.
+The smoke run is intentionally headless and state-only: it writes per-run progress logs under `build/native-smoke/<config>/` and validates first-run state persistence plus common controller actions.
 `manual_native_runtime.ps1` now creates a disposable `launch-manual.cmd` and `launch-manual.ps1` under `build/native-manual/<config>/`.
 The command file seeds the isolated `CC_*` variables, and the PowerShell launcher starts the deployed GUI with an explicit runtime `PATH`, captures the exact child pid, and waits until `manual-runtime.log` and `data/app-state.json` appear in the isolated session.
 This fixes the earlier failure mode where the manual smoke launcher guessed the pid by process name and the GUI process could still behave like a tray-only launch from non-isolated state.
@@ -74,7 +73,7 @@ The QML UI is split by responsibility under `src/comfort_cues/ui/qml/`:
 - `components/` contains reusable settings and overlay pieces.
 - `i18n/Strings.js` contains English/Chinese UI strings and status formatting.
 
-The Python reference controller delegates pure helper behavior to `src/comfort_cues/controller/`. The native controller mirrors the same split through `native/include/*` and `native/src/*` helper files for status text, profile binding, and display cue scaling.
+The native controller keeps pure helper behavior in `native/include/*` and `native/src/*` helper files for status text, profile binding, and display cue scaling.
 
 ## VSCode Tasks
 
@@ -99,19 +98,13 @@ The canonical native project entry is `native/ComfortCues.pro`.
 5. Go back to CS2 and move the camera left and right to confirm the overlay is active.
 6. Turn off `Debug / Calibration` once confirmed and use the lighter cue for actual play.
 
-## Legacy / Reference
+## Verification
 
 ```powershell
-uv sync --python 3.12 --extra dev
-uv run comfort-cues
-```
-
-The Python implementation remains a reference track while the native implementation is the primary development path.
-
-## Test
-
-```powershell
-uv run pytest
+scripts\build_native.ps1 -Configuration Release
+scripts\deploy_native.ps1 -Configuration Release
+scripts\smoke_native_runtime.ps1 -Configuration Release
+scripts\manual_native_runtime.ps1 -Configuration Release
 ```
 
 For real tray and window lifecycle validation, use `docs/native_manual_smoke.md`.

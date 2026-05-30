@@ -1,3 +1,7 @@
+param(
+    [string]$Version = "1.0.0"
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -6,14 +10,12 @@ Add-Type -AssemblyName System.IO.Compression
 $root = Split-Path -Parent $PSScriptRoot
 $deployRoot = Join-Path $root "dist\native"
 $releaseRoot = Join-Path $root "release"
-$projectFile = Join-Path $root "pyproject.toml"
-$version = ([regex]::Match((Get-Content -Raw $projectFile), '(?m)^version\s*=\s*"([^"]+)"$')).Groups[1].Value
 
-if ([string]::IsNullOrWhiteSpace($version)) {
-    throw "Unable to resolve project version from pyproject.toml."
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    throw "Version cannot be empty."
 }
 
-$packageName = "ComfortCues-$version-windows-x64"
+$packageName = "ComfortCues-$Version-windows-x64"
 $packageDir = Join-Path $releaseRoot $packageName
 $zipPath = Join-Path $releaseRoot ($packageName + ".zip")
 $zipHashPath = Join-Path $releaseRoot ($packageName + "-SHA256.txt")
@@ -42,7 +44,7 @@ Copy-Item -Path (Join-Path $deployRoot "*") -Destination $packageDir -Recurse -F
 $readmeLines = @(
     "Comfort Cues",
     "",
-    "Version: $version",
+    "Version: $Version",
     "Platform: Windows x64",
     "Package: Portable native runtime directory",
     "",

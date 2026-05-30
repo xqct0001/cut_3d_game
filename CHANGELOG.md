@@ -15,14 +15,13 @@ First public Windows x64 release of ComfortCues as a portable native runtime pac
 
 ### Changed
 
-- Promoted the native implementation to the primary development path while keeping the Python implementation as a reference track.
+- Promoted the native implementation to the primary development path.
 - Cleaned the repository layout so packaging files, handoff notes, and canonical native project entry are in stable locations.
 - Updated build and deployment scripts to use `native/ComfortCues.pro` as the single canonical native project file.
 - Updated release packaging to publish a portable `dist/native` runtime zip instead of relying on an old `dist/ComfortCues.exe` layout.
 
 ### Validation
 
-- `uv run pytest`
 - `scripts\build_native.ps1 -Configuration Release`
 - `scripts\deploy_native.ps1 -Configuration Release`
 - `scripts\smoke_native_runtime.ps1 -Configuration Release`
