@@ -70,5 +70,9 @@ RESOURCES += $$PWD/resources.qrc
 
 win32 {
     RC_ICONS = ../src/comfort_cues/ui/assets/comfort-cues.ico
-    LIBS += -ldwmapi user32.lib
+    win32-g++ {
+        LIBS += -ldwmapi -luser32
+    } else {
+        LIBS += -ldwmapi user32.lib
+    }
 }
