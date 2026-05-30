@@ -105,6 +105,92 @@ QString processPath(DWORD pid)
     }
     return QDir::fromNativeSeparators(QString::fromWCharArray(buffer));
 }
+
+bool ignoredWindow(HWND hwnd, DWORD ownPid)
+{
+    if (hwnd == nullptr || !IsWindowVisible(hwnd)) {
+        return true;
+    }
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid == ownPid) {
+        return true;
+    }
+
+    const QString cls = className(hwnd);
+    if (cls == "Progman" || cls == "WorkerW" || cls == "Shell_TrayWnd") {
+        return true;
+    }
+    if (isCloaked(hwnd) || isMinimized(hwnd)) {
+        return true;
+    }
+    return false;
+}
+
+std::optional<WindowInfo> windowInfoFromHwnd(HWND hwnd, DWORD ownPid)
+{
+    if (ignoredWindow(hwnd, ownPid)) {
+        return std::nullopt;
+    }
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    const Rect frameRect = windowRect(hwnd);
+    const Rect client = clientRect(hwnd);
+    const Rect effectiveRect = client.isEmpty() ? frameRect : client;
+    const Rect monitor = monitorRect(hwnd);
+    const long style = static_cast<long>(GetWindowLongPtrW(hwnd, kGwlStyle));
+    const auto [mode, supportedBase, reasonBase] = classifyWindowMode(frameRect, monitor, style);
+    bool supported = supportedBase;
+    QString reason = reasonBase;
+    QString finalMode = mode;
+
+    if (supported && !isSupportedAspectRatio(effectiveRect)) {
+        supported = false;
+        reason = "expected ~16:9";
+        finalMode = "unsupported-ratio";
+    }
+
+    const QString exePath = processPath(pid);
+    QFileInfo fileInfo(exePath);
+
+    WindowInfo info;
+    info.hwnd = reinterpret_cast<qintptr>(hwnd);
+    info.pid = pid;
+    info.title = windowText(hwnd);
+    info.exeName = fileInfo.fileName().isEmpty() ? QString("pid-%1").arg(pid) : fileInfo.fileName().toLower();
+    info.exePath = exePath;
+    info.rect = effectiveRect;
+    info.monitorRect = monitor;
+    info.mode = finalMode;
+    info.supported = supported;
+    info.reason = reason;
+    return info;
+}
+
+struct WindowSearch {
+    DWORD ownPid = 0;
+    std::optional<WindowInfo> firstSupported;
+    std::optional<WindowInfo> firstUnsupported;
+};
+
+BOOL CALLBACK collectBestVisibleWindow(HWND hwnd, LPARAM lParam)
+{
+    auto *search = reinterpret_cast<WindowSearch *>(lParam);
+    const std::optional<WindowInfo> info = windowInfoFromHwnd(hwnd, search->ownPid);
+    if (!info.has_value()) {
+        return TRUE;
+    }
+    if (info->supported && !search->firstSupported.has_value()) {
+        search->firstSupported = info;
+        return FALSE;
+    }
+    if (!search->firstUnsupported.has_value()) {
+        search->firstUnsupported = info;
+    }
+    return TRUE;
+}
 #endif
 
 } // namespace
@@ -152,54 +238,22 @@ std::optional<WindowInfo> ForegroundWindowTracker::snapshot() const
 #ifndef Q_OS_WIN
     return std::nullopt;
 #else
-    HWND hwnd = GetForegroundWindow();
-    DWORD pid = 0;
-    const QString cls = className(hwnd);
-    const Rect frameRect = windowRect(hwnd);
-    const Rect client = clientRect(hwnd);
-    const Rect effectiveRect = client.isEmpty() ? frameRect : client;
-    const Rect monitor = monitorRect(hwnd);
-    const long style = static_cast<long>(GetWindowLongPtrW(hwnd, kGwlStyle));
-    const auto [mode, supportedBase, reasonBase] = classifyWindowMode(frameRect, monitor, style);
-    bool supported = supportedBase;
-    QString reason = reasonBase;
-    QString finalMode = mode;
+    return windowInfoFromHwnd(GetForegroundWindow(), static_cast<DWORD>(m_ownPid));
+#endif
+}
 
-    if (hwnd == nullptr || !IsWindowVisible(hwnd)) {
-        return std::nullopt;
+std::optional<WindowInfo> ForegroundWindowTracker::bestVisibleWindow() const
+{
+#ifndef Q_OS_WIN
+    return std::nullopt;
+#else
+    WindowSearch search;
+    search.ownPid = static_cast<DWORD>(m_ownPid);
+    EnumWindows(collectBestVisibleWindow, reinterpret_cast<LPARAM>(&search));
+    if (search.firstSupported.has_value()) {
+        return search.firstSupported;
     }
-
-    GetWindowThreadProcessId(hwnd, &pid);
-    if (pid == m_ownPid) {
-        return std::nullopt;
-    }
-    if (cls == "Progman" || cls == "WorkerW" || cls == "Shell_TrayWnd") {
-        return std::nullopt;
-    }
-    if (isCloaked(hwnd) || isMinimized(hwnd)) {
-        return std::nullopt;
-    }
-    if (supported && !isSupportedAspectRatio(effectiveRect)) {
-        supported = false;
-        reason = "expected ~16:9";
-        finalMode = "unsupported-ratio";
-    }
-
-    const QString exePath = processPath(pid);
-    QFileInfo fileInfo(exePath);
-
-    WindowInfo info;
-    info.hwnd = reinterpret_cast<qintptr>(hwnd);
-    info.pid = pid;
-    info.title = windowText(hwnd);
-    info.exeName = fileInfo.fileName().isEmpty() ? QString("pid-%1").arg(pid) : fileInfo.fileName().toLower();
-    info.exePath = exePath;
-    info.rect = effectiveRect;
-    info.monitorRect = monitor;
-    info.mode = finalMode;
-    info.supported = supported;
-    info.reason = reason;
-    return info;
+    return search.firstUnsupported;
 #endif
 }
 

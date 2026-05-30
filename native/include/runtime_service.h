@@ -22,6 +22,7 @@ public:
     void reset();
     RuntimeViewState tick(double timestampMs, const Profile &previewProfile);
     std::optional<WindowInfo> foregroundWindow() const;
+    std::optional<WindowInfo> bestVisibleWindow() const;
     Rect primaryMonitorRect() const;
 
     SimulationState &simulation();

@@ -9,9 +9,9 @@ Window {
     id: settingsWindow
     objectName: "settingsWindow"
     width: 760
-    height: 560
+    height: 520
     minimumWidth: 720
-    minimumHeight: 520
+    minimumHeight: 500
     visible: false
     title: "Comfort Cues"
     color: pageColor
@@ -88,16 +88,6 @@ Window {
                 greenColor: settingsWindow.greenColor
             }
 
-            ProfilePanel {
-                controller: settingsWindow.appController
-                strings: Strings
-                language: settingsWindow.language
-                panelColor: settingsWindow.panelColor
-                borderColor: settingsWindow.borderColor
-                textColor: settingsWindow.textColor
-                mutedColor: settingsWindow.mutedColor
-            }
-
             AdvancedPanel {
                 controller: settingsWindow.appController
                 strings: Strings
@@ -150,8 +140,8 @@ Window {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
-                    Label { text: "1 " + Strings.tr(settingsWindow.language, "scanStepHide"); color: settingsWindow.greenColor; font.bold: true }
-                    Label { text: "2 " + Strings.tr(settingsWindow.language, "scanStepFocus"); color: settingsWindow.textColor; font.bold: true }
+                    Label { text: "1 " + Strings.tr(settingsWindow.language, "scanStepScan"); color: settingsWindow.greenColor; font.bold: true }
+                    Label { text: "2 " + Strings.tr(settingsWindow.language, "scanStepPick"); color: settingsWindow.textColor; font.bold: true }
                     Label { text: "3 " + Strings.tr(settingsWindow.language, "scanStepBind"); color: settingsWindow.textColor; font.bold: true }
                 }
             }

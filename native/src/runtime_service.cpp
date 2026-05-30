@@ -111,6 +111,18 @@ std::optional<WindowInfo> RuntimeService::foregroundWindow() const
     return m_lastDetectedWindow;
 }
 
+std::optional<WindowInfo> RuntimeService::bestVisibleWindow() const
+{
+    if (m_tracker == nullptr) {
+        return std::nullopt;
+    }
+    const std::optional<WindowInfo> window = m_tracker->bestVisibleWindow();
+    if (window.has_value()) {
+        m_lastDetectedWindow = window;
+    }
+    return window;
+}
+
 Rect RuntimeService::primaryMonitorRect() const
 {
     if (m_tracker == nullptr) {

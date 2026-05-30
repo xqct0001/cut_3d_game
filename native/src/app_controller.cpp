@@ -116,9 +116,7 @@ AppController::AppController(QApplication *app, const QString &dataRoot, const Q
     appendRuntimeProgress("app_controller: profile templates ensured");
     m_profileStore = ProfileStore::load(m_profilesDir);
     appendRuntimeProgress("app_controller: profile store loaded");
-    m_selectedProfile = m_profileStore.cloneProfile(
-        m_profileStore.hasProfile("CS2") ? QStringLiteral("CS2") : m_profileStore.defaultProfile().name
-    );
+    m_selectedProfile = m_profileStore.defaultProfile();
     appendRuntimeProgress(QString("app_controller: selected profile resolved (%1)").arg(m_selectedProfile.name));
 
     if (!smokeMode) {
@@ -394,18 +392,17 @@ void AppController::bindCurrentWindow()
     if (m_settingsWindow != nullptr) {
         m_bindInProgress = true;
         m_bindScanAttemptsRemaining = kBindScanAttempts;
-        m_statusText = "Binding: switch to the game window within 5 seconds.";
-        m_settingsWindow->hide();
+        m_statusText = "Binding: scanning visible windows for a game.";
         emit stateChanged();
         appendRuntimeProgress("app_controller: bind scan started");
         QTimer::singleShot(kBindScanInitialDelayMs, this, &AppController::scanForBindableWindow);
         return;
     }
 
-    const std::optional<WindowInfo> window = m_runtime.foregroundWindow();
+    const std::optional<WindowInfo> window = m_runtime.bestVisibleWindow();
     if (!window.has_value()) {
-        failBindWindow("Bind failed: no foreground game window detected.",
-                       "app_controller: bind failed (no foreground game window)");
+        failBindWindow("Bind failed: no visible supported game window found.",
+                       "app_controller: bind failed (no visible window)");
         return;
     }
 
@@ -418,7 +415,7 @@ void AppController::scanForBindableWindow()
         return;
     }
 
-    const std::optional<WindowInfo> window = m_runtime.foregroundWindow();
+    const std::optional<WindowInfo> window = m_runtime.bestVisibleWindow();
     if (window.has_value() && window->supported) {
         finishBindWindow(*window);
         return;
@@ -440,8 +437,8 @@ void AppController::scanForBindableWindow()
         return;
     }
 
-    failBindWindow("Bind failed: no foreground game window detected.",
-                   "app_controller: bind scan failed (no foreground game window)");
+    failBindWindow("Bind failed: no visible supported game window found.",
+                   "app_controller: bind scan failed (no visible window)");
 }
 
 void AppController::finishBindWindow(const WindowInfo &window)

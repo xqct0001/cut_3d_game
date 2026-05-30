@@ -14,6 +14,7 @@ public:
     ForegroundWindowTracker();
 
     std::optional<WindowInfo> snapshot() const;
+    std::optional<WindowInfo> bestVisibleWindow() const;
     Rect primaryMonitorRect() const;
 
 private:

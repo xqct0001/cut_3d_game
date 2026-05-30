@@ -145,9 +145,6 @@ function Assert-Report {
     if ([bool]$Report.default_profile_exists -ne $true) {
         $Errors.Value += "${RunName}: default profile template missing."
     }
-    if ([bool]$Report.sample_profile_exists -ne $true) {
-        $Errors.Value += "${RunName}: sample third-person profile missing."
-    }
     if ([bool]$Report.should_show_window_on_launch -ne $ExpectShouldShow) {
         $Errors.Value += "${RunName}: should_show_window_on_launch expected $ExpectShouldShow but got $($Report.should_show_window_on_launch)."
     }
@@ -186,7 +183,6 @@ $summaryPath = Join-Path $smokeRoot "summary.json"
 
 New-Item -ItemType Directory -Force $profilesRoot | Out-Null
 Copy-FileIfExists -Source (Join-Path $root "profiles\default.toml") -Destination (Join-Path $profilesRoot "default.toml")
-Copy-FileIfExists -Source (Join-Path $root "profiles\sample-third-person.toml") -Destination (Join-Path $profilesRoot "sample-third-person.toml")
 
 $firstRun = Invoke-SmokeRun -Name "first-run" -ExecutablePath $resolvedExePath -DataRoot $dataRoot -AppStatePath $statePath -ReportPath $firstRunReportPath -ProgressPath $firstRunProgressPath
 $secondRun = Invoke-SmokeRun -Name "second-run" -ExecutablePath $resolvedExePath -DataRoot $dataRoot -AppStatePath $statePath -ReportPath $secondRunReportPath -ProgressPath $secondRunProgressPath

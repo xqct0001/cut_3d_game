@@ -260,9 +260,6 @@ bool Profile::matches(const QString &exeName, const QString &title) const
 {
     const QString exe = exeName.trimmed().toLower();
     const QString titleValue = title.trimmed().toLower();
-    if (isDefault) {
-        return false;
-    }
     for (const QString &token : matchExe) {
         if (exe.contains(token)) {
             return true;
@@ -309,13 +306,6 @@ ProfileStore ProfileStore::load(const QString &directory)
         store.m_defaultProfile.isDefault = true;
     }
 
-    const QStringList entries = dir.entryList(QStringList() << "*.toml", QDir::Files, QDir::Name);
-    for (const QString &entry : entries) {
-        if (entry == "default.toml") {
-            continue;
-        }
-        store.m_profiles.append(loadProfileFile(dir.filePath(entry), &store.m_defaultProfile, false));
-    }
     appendSmokeProgress(QString("profile_store: load complete (%1 profiles)").arg(store.m_profiles.size()));
     return store;
 }
@@ -365,6 +355,9 @@ Profile ProfileStore::cloneProfile(const QString &name) const
 
 Profile ProfileStore::matchForWindow(const QString &exeName, const QString &title) const
 {
+    if (m_defaultProfile.matches(exeName, title)) {
+        return m_defaultProfile;
+    }
     for (const Profile &profile : m_profiles) {
         if (profile.matches(exeName, title)) {
             return profile;
@@ -431,7 +424,6 @@ void ensureProfileTemplates(const QString &targetDirectory)
 
     const QStringList templateNames = {
         QStringLiteral("default.toml"),
-        QStringLiteral("sample-third-person.toml"),
     };
     for (const QString &name : templateNames) {
         const QString targetPath = QDir(normalizedTarget).filePath(name);

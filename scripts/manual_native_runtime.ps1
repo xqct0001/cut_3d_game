@@ -77,7 +77,6 @@ $pidPath = Join-Path $sessionRoot "manual-runtime.pid"
 
 New-Item -ItemType Directory -Force $profilesRoot | Out-Null
 Copy-FileIfExists -Source (Join-Path $root "profiles\default.toml") -Destination (Join-Path $profilesRoot "default.toml")
-Copy-FileIfExists -Source (Join-Path $root "profiles\sample-third-person.toml") -Destination (Join-Path $profilesRoot "sample-third-person.toml")
 
 $notes = @(
     "Comfort Cues manual runtime smoke session",
@@ -93,7 +92,7 @@ $notes = @(
     "1. Confirm the first launch opens the settings window instead of silently staying in tray.",
     "2. Click Bind Window while a supported 16:9 windowed or borderless game is focused.",
     "3. Toggle Debug and confirm the overlay becomes visually obvious.",
-    "4. Click Save and confirm a profile file is written under data\\profiles.",
+    "4. Click Save and confirm default.toml is updated under data\\profiles.",
     "5. Close the settings window and reopen it from the tray icon.",
     "6. Disable, then Enable, and confirm the tray tooltip and UI state update.",
     "",

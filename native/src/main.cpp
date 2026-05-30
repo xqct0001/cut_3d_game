@@ -84,11 +84,8 @@ int runStateOnlySmokeTest(const QString &dataRoot, const QString &statePath, con
 
     const QString profilesDir = QDir(dataRoot).filePath("profiles");
     const QString defaultProfilePath = QDir(profilesDir).filePath("default.toml");
-    const QString sampleProfilePath = QDir(profilesDir).filePath("sample-third-person.toml");
     ProfileStore profileStore = ProfileStore::load(profilesDir);
-    const Profile selectedProfile = profileStore.hasProfile("CS2")
-        ? profileStore.cloneProfile("CS2")
-        : profileStore.defaultProfile();
+    const Profile selectedProfile = profileStore.defaultProfile();
 
     QJsonObject report;
 
@@ -99,7 +96,6 @@ int runStateOnlySmokeTest(const QString &dataRoot, const QString &statePath, con
     report.insert("profiles_dir", QDir::toNativeSeparators(profilesDir));
     report.insert("profiles_dir_exists", QFileInfo::exists(profilesDir));
     report.insert("default_profile_exists", QFileInfo::exists(defaultProfilePath));
-    report.insert("sample_profile_exists", QFileInfo::exists(sampleProfilePath));
     report.insert("selected_profile_name", selectedProfile.name);
     appendProgressLine(progressPath, "runSmokeTest: captured startup state");
 

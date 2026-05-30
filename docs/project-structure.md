@@ -11,7 +11,7 @@ This document describes the maintained native-only layout of the Comfort Cues wo
 - `src/comfort_cues/ui/assets/`
   Icons and image assets used by the native application.
 - `profiles/`
-  Default and sample profile data used by runtime flows and deployment.
+  Default profile data used by runtime flows and deployment.
 - `scripts/`
   PowerShell automation for toolchain checks, build, deploy, smoke, manual runtime checks, and release packaging.
 - `docs/`

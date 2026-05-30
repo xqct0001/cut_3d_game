@@ -24,21 +24,17 @@ QString profileNameForWindow(const WindowInfo &window)
     return QStringLiteral("Game Profile");
 }
 
-Profile bindingProfileForWindow(const Profile &selectedProfile, const WindowInfo &window)
+Profile bindingProfileForWindow(const Profile &selectedProfile, const WindowInfo &)
 {
     Profile profile = selectedProfile;
     if (!profile.isDefault) {
         return profile;
     }
 
-    const QString name = profileNameForWindow(window);
-    profile.name = name;
-    profile.description = QString("%1 windowed or borderless profile.").arg(name);
-    profile.matchExe.clear();
-    profile.matchTitle.clear();
+    if (profile.name.isEmpty()) {
+        profile.name = QStringLiteral("Default");
+    }
     profile.lastBoundExe.clear();
     profile.lastBoundTitle.clear();
-    profile.filePath.clear();
-    profile.isDefault = false;
     return profile;
 }
