@@ -7,7 +7,7 @@
 - no game memory reads or writes
 - no synthetic input or gameplay automation
 
-The first version targets windowed and borderless-windowed first/third-person games. It uses system-level input only and draws a light edge cue overlay through the desktop compositor.
+The first version targets visible first/third-person game windows. It uses system-level input only and draws a light edge cue overlay through the desktop compositor.
 
 ## Project Layout
 
@@ -59,7 +59,7 @@ scripts\build_single_exe.ps1 -Configuration Release
 
 A real single-file `ComfortCues.exe` requires a static Qt SDK. The current fallback Conda/MSVC toolchain in this repository is a shared Qt build and cannot produce a true single-file executable without extra DLLs or an extraction wrapper.
 
-Only `windowed` and `borderless-windowed` games are supported. `Exclusive fullscreen` is not supported.
+Game detection scans visible top-level windows and no longer rejects fullscreen or non-16:9 windows during binding.
 
 The native build expects a Qt 6 MinGW toolchain on `PATH`, including `qmake`, `mingw32-make`, and a deploy tool exposed as `windeployqt`, `windeployqt6`, or `windeployqt-qt6`.
 Run `scripts\check_native_toolchain.ps1` first if the machine has multiple Qt or MinGW installs.
@@ -92,7 +92,7 @@ The canonical native project entry is `native/ComfortCues.pro`.
 ## CS2 Quick Start
 
 1. Build and deploy the native app.
-2. Launch Counter-Strike 2 and switch it to `windowed` or `borderless windowed`.
+2. Launch Counter-Strike 2 and keep its window visible.
 3. Alt-Tab back to the app and click `Bind Current Window`.
 4. Enable `Debug / Calibration` so the edge cue becomes obvious.
 5. Go back to CS2 and move the camera left and right to confirm the overlay is active.

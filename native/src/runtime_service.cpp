@@ -29,10 +29,6 @@ RuntimeViewState RuntimeService::tick(double timestampMs, const Profile &preview
     m_lastDetectedWindow = window;
     if (!window->supported) {
         reset();
-        if (window->mode == "unsupported-ratio") {
-            return emptyView(window->rect, QString("Unsupported ratio: %1 - expected ~16:9").arg(window->exeName),
-                             "", window->title, window->mode);
-        }
         return emptyView(window->rect,
                          QString("Unsupported window: %1 - %2 - %3").arg(window->exeName, window->mode, window->reason),
                          "", window->title, window->mode);
@@ -109,6 +105,14 @@ std::optional<WindowInfo> RuntimeService::foregroundWindow() const
         return window;
     }
     return m_lastDetectedWindow;
+}
+
+QVector<WindowInfo> RuntimeService::visibleWindows() const
+{
+    if (m_tracker == nullptr) {
+        return {};
+    }
+    return m_tracker->visibleWindows();
 }
 
 std::optional<WindowInfo> RuntimeService::bestVisibleWindow() const

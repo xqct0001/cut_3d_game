@@ -60,6 +60,20 @@ QIcon resolveAppIcon(QApplication *app)
     return app != nullptr ? app->style()->standardIcon(QStyle::SP_ComputerIcon) : QIcon();
 }
 
+QString windowDebugLine(const WindowInfo &window)
+{
+    return QString("%1 title=\"%2\" mode=%3 supported=%4 rect=%5,%6 %7x%8 reason=\"%9\"")
+        .arg(window.exeName,
+             window.title.left(80),
+             window.mode,
+             window.supported ? QStringLiteral("true") : QStringLiteral("false"))
+        .arg(window.rect.x)
+        .arg(window.rect.y)
+        .arg(window.rect.width)
+        .arg(window.rect.height)
+        .arg(window.reason);
+}
+
 QString smokeProgressPath()
 {
     const QString runtimePath = qEnvironmentVariable("CC_RUNTIME_PROGRESS_PATH");
@@ -401,7 +415,7 @@ void AppController::bindCurrentWindow()
 
     const std::optional<WindowInfo> window = m_runtime.bestVisibleWindow();
     if (!window.has_value()) {
-        failBindWindow("Bind failed: no visible supported game window found.",
+        failBindWindow("Bind failed: no visible game window found.",
                        "app_controller: bind failed (no visible window)");
         return;
     }
@@ -415,8 +429,19 @@ void AppController::scanForBindableWindow()
         return;
     }
 
+    const bool shouldLogCandidates = m_bindScanAttemptsRemaining == kBindScanAttempts;
+    if (shouldLogCandidates) {
+        const QVector<WindowInfo> windows = m_runtime.visibleWindows();
+        appendRuntimeProgress(QString("app_controller: bind scan candidates=%1").arg(windows.size()));
+        const int limit = qMin(windows.size(), 12);
+        for (int i = 0; i < limit; ++i) {
+            appendRuntimeProgress(QString("app_controller: candidate[%1] %2").arg(i).arg(windowDebugLine(windows.at(i))));
+        }
+    }
+
     const std::optional<WindowInfo> window = m_runtime.bestVisibleWindow();
     if (window.has_value() && window->supported) {
+        appendRuntimeProgress(QString("app_controller: bind selected %1").arg(windowDebugLine(*window)));
         finishBindWindow(*window);
         return;
     }
@@ -431,13 +456,14 @@ void AppController::scanForBindableWindow()
         m_activeWindowTitle = window->title;
         m_activeWindowMode = window->mode;
         m_activeExeName = window->exeName;
-        failBindWindow(QString("Bind failed: no supported game window detected (%1).").arg(window->exeName),
-                       QString("app_controller: bind scan failed (unsupported foreground: %1 - %2)")
+        appendRuntimeProgress(QString("app_controller: bind best unsupported %1").arg(windowDebugLine(*window)));
+        failBindWindow(QString("Bind failed: detected window is too small or unavailable (%1).").arg(window->exeName),
+                       QString("app_controller: bind scan failed (unsupported visible window: %1 - %2)")
                            .arg(window->exeName, window->reason));
         return;
     }
 
-    failBindWindow("Bind failed: no visible supported game window found.",
+    failBindWindow("Bind failed: no visible game window found.",
                    "app_controller: bind scan failed (no visible window)");
 }
 

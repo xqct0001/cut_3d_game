@@ -17,8 +17,6 @@ static constexpr int kGwlStyle = -16;
 static constexpr DWORD kProcessQueryLimitedInformation = 0x1000;
 #endif
 
-static constexpr double kMinSupportedAspect = 1.74;
-static constexpr double kMaxSupportedAspect = 1.82;
 static constexpr long kWsCaption = 0x00C00000L;
 static constexpr long kWsPopup = 0x80000000L;
 
@@ -148,8 +146,8 @@ std::optional<WindowInfo> windowInfoFromHwnd(HWND hwnd, DWORD ownPid)
 
     if (supported && !isSupportedAspectRatio(effectiveRect)) {
         supported = false;
-        reason = "expected ~16:9";
-        finalMode = "unsupported-ratio";
+        reason = "empty client area";
+        finalMode = "unsupported";
     }
 
     const QString exePath = processPath(pid);
@@ -171,23 +169,15 @@ std::optional<WindowInfo> windowInfoFromHwnd(HWND hwnd, DWORD ownPid)
 
 struct WindowSearch {
     DWORD ownPid = 0;
-    std::optional<WindowInfo> firstSupported;
-    std::optional<WindowInfo> firstUnsupported;
+    QVector<WindowInfo> windows;
 };
 
-BOOL CALLBACK collectBestVisibleWindow(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK collectVisibleWindow(HWND hwnd, LPARAM lParam)
 {
     auto *search = reinterpret_cast<WindowSearch *>(lParam);
     const std::optional<WindowInfo> info = windowInfoFromHwnd(hwnd, search->ownPid);
-    if (!info.has_value()) {
-        return TRUE;
-    }
-    if (info->supported && !search->firstSupported.has_value()) {
-        search->firstSupported = info;
-        return FALSE;
-    }
-    if (!search->firstUnsupported.has_value()) {
-        search->firstUnsupported = info;
+    if (info.has_value()) {
+        search->windows.append(*info);
     }
     return TRUE;
 }
@@ -205,25 +195,21 @@ std::tuple<QString, bool, QString> classifyWindowMode(const Rect &rect, const Re
     if (rect.isEmpty()) {
         return {"unsupported", false, "empty window bounds"};
     }
-    if (rect.width < 320 || rect.height < 240) {
+    if (rect.width < 160 || rect.height < 120) {
         return {"unsupported", false, "window too small"};
     }
     if (coversMonitor && (style & kWsPopup) && !(style & kWsCaption)) {
         return {"borderless", true, "borderless window supported"};
     }
     if (coversMonitor) {
-        return {"exclusive-or-unknown", false, "fullscreen mode not supported"};
+        return {"fullscreen", true, "fullscreen window supported"};
     }
     return {"windowed", true, "windowed mode supported"};
 }
 
 bool isSupportedAspectRatio(const Rect &rect)
 {
-    if (rect.isEmpty() || rect.height <= 0) {
-        return false;
-    }
-    const double aspect = static_cast<double>(rect.width) / static_cast<double>(rect.height);
-    return aspect >= kMinSupportedAspect && aspect <= kMaxSupportedAspect;
+    return !rect.isEmpty() && rect.height > 0;
 }
 
 ForegroundWindowTracker::ForegroundWindowTracker()
@@ -242,18 +228,44 @@ std::optional<WindowInfo> ForegroundWindowTracker::snapshot() const
 #endif
 }
 
+QVector<WindowInfo> ForegroundWindowTracker::visibleWindows() const
+{
+#ifndef Q_OS_WIN
+    return {};
+#else
+    WindowSearch search;
+    search.ownPid = static_cast<DWORD>(m_ownPid);
+    EnumWindows(collectVisibleWindow, reinterpret_cast<LPARAM>(&search));
+    return search.windows;
+#endif
+}
+
 std::optional<WindowInfo> ForegroundWindowTracker::bestVisibleWindow() const
 {
 #ifndef Q_OS_WIN
     return std::nullopt;
 #else
-    WindowSearch search;
-    search.ownPid = static_cast<DWORD>(m_ownPid);
-    EnumWindows(collectBestVisibleWindow, reinterpret_cast<LPARAM>(&search));
-    if (search.firstSupported.has_value()) {
-        return search.firstSupported;
+    const QVector<WindowInfo> windows = visibleWindows();
+    std::optional<WindowInfo> bestSupported;
+    std::optional<WindowInfo> bestUnsupported;
+    auto area = [](const WindowInfo &window) {
+        return static_cast<long long>(window.rect.width) * static_cast<long long>(window.rect.height);
+    };
+
+    for (const WindowInfo &window : windows) {
+        if (window.supported) {
+            if (!bestSupported.has_value() || area(window) > area(*bestSupported)) {
+                bestSupported = window;
+            }
+        } else if (!bestUnsupported.has_value() || area(window) > area(*bestUnsupported)) {
+            bestUnsupported = window;
+        }
     }
-    return search.firstUnsupported;
+
+    if (bestSupported.has_value()) {
+        return bestSupported;
+    }
+    return bestUnsupported;
 #endif
 }
 

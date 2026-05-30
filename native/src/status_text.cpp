@@ -37,7 +37,7 @@ TrayText trayTextForLanguage(const QString &language)
         return {
             QStringLiteral("Enabled"),
             QStringLiteral("Disabled"),
-            QStringLiteral("16:9 windowed/borderless only"),
+            QStringLiteral("Visible game window detection"),
             QStringLiteral("Click the tray icon to open"),
             QStringLiteral("Enable"),
             QStringLiteral("Disable"),
@@ -48,7 +48,7 @@ TrayText trayTextForLanguage(const QString &language)
     return {
         QStringLiteral("\u5DF2\u5F00\u542F"),
         QStringLiteral("\u5DF2\u5173\u95ED"),
-        QStringLiteral("\u4EC5\u652F\u6301 16:9 \u7A97\u53E3\u5316/\u65E0\u8FB9\u6846"),
+        QStringLiteral("\u68C0\u6D4B\u53EF\u89C1\u6E38\u620F\u7A97\u53E3"),
         QStringLiteral("\u5355\u51FB\u6258\u76D8\u56FE\u6807\u53EF\u6253\u5F00\u8BBE\u7F6E"),
         QStringLiteral("\u5F00\u542F"),
         QStringLiteral("\u5173\u95ED"),

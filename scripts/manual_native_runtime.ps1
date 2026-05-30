@@ -90,7 +90,7 @@ $notes = @(
     "",
     "Checklist:",
     "1. Confirm the first launch opens the settings window instead of silently staying in tray.",
-    "2. Click Bind Window while a supported 16:9 windowed or borderless game is focused.",
+    "2. Click Bind Window while a game window is visible.",
     "3. Toggle Debug and confirm the overlay becomes visually obvious.",
     "4. Click Save and confirm default.toml is updated under data\\profiles.",
     "5. Close the settings window and reopen it from the tray icon.",

@@ -22,7 +22,7 @@ After you finish the manual pass and close the app, run `scripts\summarize_manua
 ## Checklist
 
 1. Confirm the first launch opens the settings window.
-2. Focus a supported 16:9 windowed or borderless game, then click `Bind Window`.
+2. Keep a game window visible, then click `Bind Window`.
 3. Toggle `Debug` and verify the overlay becomes visually obvious.
 4. Click `Save` and confirm a profile file exists under `build/native-manual/<config>/data/profiles/`.
 5. Close the settings window and reopen it from the tray icon.

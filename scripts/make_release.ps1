@@ -53,7 +53,7 @@ $readmeLines = @(
     "2. Open the extracted folder and double-click ComfortCues.exe.",
     "3. After first run, the app stays in the system tray by default.",
     "4. Click the tray icon to reopen the main window.",
-    "5. Only windowed or borderless-windowed game windows are supported.",
+    "5. Game detection scans visible top-level windows.",
     "",
     "Notes:",
     "- This is a portable build produced from dist\\native. No installer is required.",

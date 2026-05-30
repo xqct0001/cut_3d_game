@@ -3,6 +3,8 @@
 
 #include "models.h"
 
+#include <QVector>
+
 #include <optional>
 #include <tuple>
 
@@ -14,6 +16,7 @@ public:
     ForegroundWindowTracker();
 
     std::optional<WindowInfo> snapshot() const;
+    QVector<WindowInfo> visibleWindows() const;
     std::optional<WindowInfo> bestVisibleWindow() const;
     Rect primaryMonitorRect() const;
 

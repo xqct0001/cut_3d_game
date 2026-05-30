@@ -2,10 +2,10 @@
 
 var en = {
     language: "Language",
-    subtitle: "Comfort overlay for windowed 3D games",
+    subtitle: "Comfort overlay for 3D games",
     waitingTitle: "No game detected",
     trackingTitle: "Game detected",
-    unsupportedTitle: "Unsupported window",
+    unsupportedTitle: "Window unavailable",
     pausedTitle: "Overlay paused",
     scanningTitle: "Detecting game",
     appOn: "On",
@@ -24,11 +24,11 @@ var en = {
     exeNA: "--",
     scanHint: "Scans visible windows and binds the detected game automatically.",
     scanDialogTitle: "Detecting game",
-    scanDialogBody: "Comfort Cues is scanning visible windows. Keep the game open in windowed or borderless mode.",
+    scanDialogBody: "Comfort Cues is scanning visible windows. Keep the game open.",
     scanStepScan: "Scan windows",
     scanStepPick: "Pick game",
     scanStepBind: "Save binding",
-    supportedHint: "Supports 16:9 windowed / borderless games",
+    supportedHint: "Scans visible game windows",
     none: "None",
     reload: "Reload",
     save: "Save",
@@ -53,9 +53,9 @@ var en = {
     lateral: "Lateral",
     resetSimulator: "Reset simulator",
     borderless: "Borderless",
+    fullscreen: "Fullscreen",
     windowed: "Windowed",
-    unsupportedRatio: "Unsupported ratio",
-    unsupportedFullscreen: "Fullscreen not supported",
+    unsupported: "Unavailable",
     simulatorMode: "Simulator",
     waiting: "Waiting",
     disabled: "Disabled",
@@ -63,23 +63,22 @@ var en = {
     runningBg: "Comfort Cues running in background.",
     disabledStatus: "Comfort Cues disabled.",
     savedProfilePrefix: "Saved profile to ",
-    bindFailedNoWindow: "Detect failed: no visible supported game window found.",
+    bindFailedNoWindow: "Detect failed: no visible game window found.",
     bindFailedPrefix: "Detect failed: ",
     bindingPrefix: "Detecting: ",
     boundGenericPrefix: "Bound to ",
     activePrefix: "Active: ",
-    unsupportedRatioPrefix: "Unsupported ratio: ",
-    unsupportedWindowPrefix: "Unsupported window: ",
+    unsupportedWindowPrefix: "Window unavailable: ",
     noMatchedProfilePrefix: "Window detected but no matched game: ",
     simulatorPreviewPrefix: "Simulator preview - "
 }
 
 var zh = {
     language: "语言",
-    subtitle: "窗口化 3D 游戏舒适覆盖层",
+    subtitle: "3D 游戏舒适覆盖层",
     waitingTitle: "未识别游戏",
     trackingTitle: "已识别游戏",
-    unsupportedTitle: "窗口不支持",
+    unsupportedTitle: "窗口不可用",
     pausedTitle: "覆盖层已关闭",
     scanningTitle: "正在识别游戏",
     appOn: "已开启",
@@ -98,11 +97,11 @@ var zh = {
     exeNA: "--",
     scanHint: "会扫描当前可见窗口，并自动绑定识别到的游戏。",
     scanDialogTitle: "正在识别游戏",
-    scanDialogBody: "正在扫描可见窗口。请保持游戏以窗口化或无边框模式打开。",
+    scanDialogBody: "正在扫描可见窗口。请保持游戏打开。",
     scanStepScan: "扫描窗口",
     scanStepPick: "选择游戏",
     scanStepBind: "保存绑定",
-    supportedHint: "支持 16:9 窗口化 / 无边框游戏",
+    supportedHint: "扫描可见游戏窗口",
     none: "无",
     reload: "刷新",
     save: "保存",
@@ -127,9 +126,9 @@ var zh = {
     lateral: "侧向",
     resetSimulator: "重置模拟器",
     borderless: "无边框",
+    fullscreen: "全屏",
     windowed: "窗口化",
-    unsupportedRatio: "比例不支持",
-    unsupportedFullscreen: "独占全屏不支持",
+    unsupported: "不可用",
     simulatorMode: "模拟器",
     waiting: "等待中",
     disabled: "已关闭",
@@ -137,13 +136,12 @@ var zh = {
     runningBg: "Comfort Cues 正在后台运行。",
     disabledStatus: "Comfort Cues 已关闭。",
     savedProfilePrefix: "已保存配置到 ",
-    bindFailedNoWindow: "识别失败：没有找到可用的游戏窗口。",
+    bindFailedNoWindow: "识别失败：没有找到可见游戏窗口。",
     bindFailedPrefix: "识别失败：",
     bindingPrefix: "正在识别：",
     boundGenericPrefix: "已绑定到 ",
     activePrefix: "当前：",
-    unsupportedRatioPrefix: "比例不支持：",
-    unsupportedWindowPrefix: "窗口不支持：",
+    unsupportedWindowPrefix: "窗口不可用：",
     noMatchedProfilePrefix: "检测到窗口但未绑定游戏：",
     simulatorPreviewPrefix: "模拟器预览 - "
 }
@@ -163,12 +161,12 @@ function translateStatus(language, text) {
     if (text === "Comfort Cues disabled.") return tr(language, "disabledStatus")
     if (text === "Bind failed: no foreground game window detected.") return tr(language, "bindFailedNoWindow")
     if (text === "Bind failed: no visible supported game window found.") return tr(language, "bindFailedNoWindow")
+    if (text === "Bind failed: no visible game window found.") return tr(language, "bindFailedNoWindow")
     if (text.indexOf("Binding: ") === 0) return tr(language, "bindingPrefix") + text.substring("Binding: ".length)
     if (text.indexOf("Saved profile to ") === 0) return tr(language, "savedProfilePrefix") + text.substring("Saved profile to ".length)
     if (text.indexOf("Bound current window to ") === 0) return tr(language, "boundGenericPrefix") + text.substring("Bound current window to ".length)
     if (text.indexOf("Bind failed: ") === 0) return tr(language, "bindFailedPrefix") + text.substring("Bind failed: ".length)
     if (text.indexOf("Active: ") === 0) return tr(language, "activePrefix") + text.substring("Active: ".length)
-    if (text.indexOf("Unsupported ratio: ") === 0) return tr(language, "unsupportedRatioPrefix") + text.substring("Unsupported ratio: ".length)
     if (text.indexOf("Unsupported window: ") === 0) return tr(language, "unsupportedWindowPrefix") + text.substring("Unsupported window: ".length)
     if (text.indexOf("Window detected but no matched profile: ") === 0) return tr(language, "noMatchedProfilePrefix") + text.substring("Window detected but no matched profile: ".length)
     if (text.indexOf("Simulator preview - ") === 0) return tr(language, "simulatorPreviewPrefix") + text.substring("Simulator preview - ".length)
@@ -177,9 +175,9 @@ function translateStatus(language, text) {
 
 function modeSummary(language, mode) {
     if (mode === "borderless") return tr(language, "borderless")
+    if (mode === "fullscreen") return tr(language, "fullscreen")
     if (mode === "windowed") return tr(language, "windowed")
-    if (mode === "unsupported-ratio") return tr(language, "unsupportedRatio")
-    if (mode === "exclusive-or-unknown") return tr(language, "unsupportedFullscreen")
+    if (mode === "unsupported") return tr(language, "unsupported")
     if (mode === "simulator") return tr(language, "simulatorMode")
     if (mode === "disabled") return tr(language, "disabled")
     if (mode === "idle") return tr(language, "waiting")
@@ -189,7 +187,7 @@ function modeSummary(language, mode) {
 function sessionTitle(language, controller) {
     if (controller.bindInProgress) return tr(language, "scanningTitle")
     if (!controller.appEnabled) return tr(language, "pausedTitle")
-    if (controller.activeWindowMode === "unsupported-ratio" || controller.activeWindowMode === "exclusive-or-unknown") return tr(language, "unsupportedTitle")
+    if (controller.activeWindowMode === "unsupported") return tr(language, "unsupportedTitle")
     if (controller.activeWindowTitle.length > 0 || controller.overlayVisible) return tr(language, "trackingTitle")
     return tr(language, "waitingTitle")
 }
@@ -197,7 +195,7 @@ function sessionTitle(language, controller) {
 function sessionColorKey(controller) {
     if (controller.bindInProgress) return "blue"
     if (!controller.appEnabled) return "muted"
-    if (controller.activeWindowMode === "unsupported-ratio" || controller.activeWindowMode === "exclusive-or-unknown") return "warning"
+    if (controller.activeWindowMode === "unsupported") return "warning"
     if (controller.activeWindowTitle.length > 0 || controller.overlayVisible) return "green"
     return "muted"
 }

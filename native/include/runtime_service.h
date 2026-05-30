@@ -6,6 +6,8 @@
 #include "profile_store.h"
 #include "window_tracker.h"
 
+#include <QVector>
+
 #include <optional>
 
 struct SimulationState {
@@ -22,6 +24,7 @@ public:
     void reset();
     RuntimeViewState tick(double timestampMs, const Profile &previewProfile);
     std::optional<WindowInfo> foregroundWindow() const;
+    QVector<WindowInfo> visibleWindows() const;
     std::optional<WindowInfo> bestVisibleWindow() const;
     Rect primaryMonitorRect() const;
 
