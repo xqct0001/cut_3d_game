@@ -125,7 +125,9 @@ Rectangle {
 
             MetricRow {
                 label: strings.tr(language, "executable")
-                value: controller.activeExeName.length > 0 ? controller.activeExeName : strings.tr(language, "exeNA")
+                value: controller.activeExeName.length > 0
+                    ? controller.activeExeName
+                    : (controller.boundExeName.length > 0 ? controller.boundExeName : strings.tr(language, "exeNA"))
                 labelColor: mutedColor
                 valueColor: textColor
             }

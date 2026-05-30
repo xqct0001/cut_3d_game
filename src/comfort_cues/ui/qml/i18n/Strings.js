@@ -194,7 +194,7 @@ function sessionTitle(language, controller) {
     if (controller.bindInProgress) return tr(language, "scanningTitle")
     if (!controller.appEnabled) return tr(language, "pausedTitle")
     if (controller.activeWindowMode === "unsupported") return tr(language, "unsupportedTitle")
-    if (controller.activeWindowTitle.length > 0 || controller.overlayVisible) return tr(language, "trackingTitle")
+    if (controller.activeWindowTitle.length > 0 || controller.boundWindowTitle.length > 0 || controller.overlayVisible) return tr(language, "trackingTitle")
     return tr(language, "waitingTitle")
 }
 
@@ -202,12 +202,14 @@ function sessionColorKey(controller) {
     if (controller.bindInProgress) return "blue"
     if (!controller.appEnabled) return "muted"
     if (controller.activeWindowMode === "unsupported") return "warning"
-    if (controller.activeWindowTitle.length > 0 || controller.overlayVisible) return "green"
+    if (controller.activeWindowTitle.length > 0 || controller.boundWindowTitle.length > 0 || controller.overlayVisible) return "green"
     return "muted"
 }
 
 function windowSummary(language, controller) {
-    return controller.activeWindowTitle.length > 0 ? controller.activeWindowTitle : tr(language, "noWindow")
+    if (controller.activeWindowTitle.length > 0) return controller.activeWindowTitle
+    if (controller.boundWindowTitle.length > 0) return controller.boundWindowTitle
+    return tr(language, "noWindow")
 }
 
 function formatNumber(value) {

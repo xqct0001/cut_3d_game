@@ -118,6 +118,17 @@ void appendRuntimeProgress(const QString &message)
     file.close();
 }
 
+QString boundDisplayTitle(const Profile &profile)
+{
+    if (!profile.lastBoundTitle.trimmed().isEmpty()) {
+        return profile.lastBoundTitle.trimmed();
+    }
+    if (!profile.lastBoundExe.trimmed().isEmpty()) {
+        return profile.lastBoundExe.trimmed();
+    }
+    return QString();
+}
+
 } // namespace
 
 AppController::AppController(QApplication *app, const QString &dataRoot, const QString &statePath, QObject *parent)
@@ -148,6 +159,7 @@ AppController::AppController(QApplication *app, const QString &dataRoot, const Q
     m_profileStore = ProfileStore::load(m_profilesDir);
     appendRuntimeProgress("app_controller: profile store loaded");
     m_selectedProfile = m_profileStore.defaultProfile();
+    refreshBoundWindowFromSelectedProfile();
     appendRuntimeProgress(QString("app_controller: selected profile resolved (%1)").arg(m_selectedProfile.name));
 
     if (!smokeMode) {
@@ -237,6 +249,8 @@ void AppController::setSelectedProfileName(const QString &value)
         return;
     }
     m_selectedProfile = m_profileStore.cloneProfile(value);
+    refreshBoundWindowFromSelectedProfile();
+    emit stateChanged();
     emit profileChanged();
 }
 
@@ -379,8 +393,10 @@ void AppController::reloadProfiles()
     m_selectedProfile = m_profileStore.cloneProfile(
         m_profileStore.hasProfile(targetName) ? targetName : m_profileStore.defaultProfile().name
     );
+    refreshBoundWindowFromSelectedProfile();
     emit profilesChanged();
     emit profileChanged();
+    emit stateChanged();
 }
 
 void AppController::enableApp()
@@ -531,6 +547,8 @@ void AppController::finishBindWindow(const WindowInfo &window)
     m_selectedProfile = m_profileStore.hasProfile(savedProfileName)
         ? m_profileStore.cloneProfile(savedProfileName)
         : m_profileStore.defaultProfile();
+    m_boundWindowTitle = window.title.isEmpty() ? window.exeName : window.title;
+    m_boundExeName = window.exeName;
     m_statusText = QString("Bound current window to %1 profile: %2").arg(savedProfileName, window.exeName);
     m_activeProfileName = savedProfileName;
     m_bindInProgress = false;
@@ -660,6 +678,12 @@ void AppController::persistAppState()
 {
     m_appState.appEnabled = m_appEnabled;
     saveAppState(m_appStatePath, m_appState);
+}
+
+void AppController::refreshBoundWindowFromSelectedProfile()
+{
+    m_boundWindowTitle = boundDisplayTitle(m_selectedProfile);
+    m_boundExeName = m_selectedProfile.lastBoundExe.trimmed();
 }
 
 void AppController::advanceFlowPhase(double timestampMs, float cueEnergy)

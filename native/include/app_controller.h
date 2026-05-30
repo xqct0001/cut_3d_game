@@ -47,6 +47,8 @@ class AppController : public QObject {
     Q_PROPERTY(QString activeProfileName READ activeProfileName NOTIFY stateChanged)
     Q_PROPERTY(QString activeWindowMode READ activeWindowMode NOTIFY stateChanged)
     Q_PROPERTY(QString activeExeName READ activeExeName NOTIFY stateChanged)
+    Q_PROPERTY(QString boundWindowTitle READ boundWindowTitle NOTIFY stateChanged)
+    Q_PROPERTY(QString boundExeName READ boundExeName NOTIFY stateChanged)
     Q_PROPERTY(bool bindInProgress READ bindInProgress NOTIFY stateChanged)
     Q_PROPERTY(QVariantList bindWindowCandidates READ bindWindowCandidates NOTIFY bindCandidatesChanged)
     Q_PROPERTY(int selectedBindWindowIndex READ selectedBindWindowIndex WRITE setSelectedBindWindowIndex NOTIFY bindCandidatesChanged)
@@ -106,6 +108,8 @@ public:
     QString activeProfileName() const { return m_activeProfileName; }
     QString activeWindowMode() const { return m_activeWindowMode; }
     QString activeExeName() const { return m_activeExeName; }
+    QString boundWindowTitle() const { return m_boundWindowTitle; }
+    QString boundExeName() const { return m_boundExeName; }
     bool bindInProgress() const { return m_bindInProgress; }
     QVariantList bindWindowCandidates() const { return m_bindWindowCandidates; }
     int selectedBindWindowIndex() const { return m_selectedBindWindowIndex; }
@@ -176,6 +180,7 @@ private:
     void tick();
     void persistAppState();
     void advanceFlowPhase(double timestampMs, float cueEnergy);
+    void refreshBoundWindowFromSelectedProfile();
     void finishBindWindow(const WindowInfo &window);
     void failBindWindow(const QString &statusText, const QString &progressText);
     void restoreSettingsWindow();
@@ -205,6 +210,8 @@ private:
     QString m_activeProfileName;
     QString m_activeWindowMode = QStringLiteral("idle");
     QString m_activeExeName;
+    QString m_boundWindowTitle;
+    QString m_boundExeName;
     QVector<WindowInfo> m_bindCandidateWindows;
     QVariantList m_bindWindowCandidates;
     int m_selectedBindWindowIndex = -1;
