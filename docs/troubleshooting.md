@@ -26,7 +26,7 @@
 处理步骤：
 
 1. 将游戏切换为窗口化或无边框窗口化。
-2. 在 Comfort Cues 中点击绑定当前窗口。
+2. 在 Comfort Cues 中点击“选择窗口”，选中游戏窗口后点击“绑定选中”。
 3. 临时开启调试/校准模式，确认提示是否可见。
 4. 暂时关闭其他覆盖层：Steam Overlay、Discord Overlay、Xbox Game Bar、NVIDIA/AMD Overlay、录屏软件叠加层。
 5. 如果使用多显示器，先把游戏和 Comfort Cues 放在主显示器测试。

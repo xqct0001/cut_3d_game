@@ -108,7 +108,7 @@ Window {
 
         Rectangle {
             anchors.centerIn: parent
-            width: 360
+            width: Math.min(parent.width - 48, 620)
             implicitHeight: scanLayout.implicitHeight + 34
             radius: 10
             color: "#F7F8F4"
@@ -137,12 +137,99 @@ Window {
                     wrapMode: Text.WordWrap
                 }
 
+                ListView {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Math.min(280, Math.max(96, contentHeight))
+                    clip: true
+                    spacing: 8
+                    model: settingsWindow.appController.bindWindowCandidates
+
+                    delegate: Rectangle {
+                        width: ListView.view.width
+                        height: 72
+                        radius: 8
+                        color: settingsWindow.appController.selectedBindWindowIndex === modelData.index ? "#E0F1E7" : "#FFFFFF"
+                        border.color: settingsWindow.appController.selectedBindWindowIndex === modelData.index ? settingsWindow.greenColor : settingsWindow.borderColor
+                        border.width: 1
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: settingsWindow.appController.selectedBindWindowIndex = modelData.index
+                        }
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 4
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.title
+                                    color: settingsWindow.textColor
+                                    font.pixelSize: 15
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                }
+
+                                Label {
+                                    text: Strings.modeSummary(settingsWindow.language, modelData.mode)
+                                    color: modelData.supported ? settingsWindow.greenColor : settingsWindow.warningColor
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                }
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: modelData.exeName + "  ·  " + modelData.windowClass + "  ·  " + modelData.rect
+                                color: settingsWindow.mutedColor
+                                font.pixelSize: 12
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    visible: settingsWindow.appController.bindWindowCandidates.length === 0
+                    text: Strings.tr(settingsWindow.language, "manualBindEmpty")
+                    color: settingsWindow.warningColor
+                    font.pixelSize: 13
+                    wrapMode: Text.WordWrap
+                }
+
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 8
-                    Label { text: "1 " + Strings.tr(settingsWindow.language, "scanStepScan"); color: settingsWindow.greenColor; font.bold: true }
-                    Label { text: "2 " + Strings.tr(settingsWindow.language, "scanStepPick"); color: settingsWindow.textColor; font.bold: true }
-                    Label { text: "3 " + Strings.tr(settingsWindow.language, "scanStepBind"); color: settingsWindow.textColor; font.bold: true }
+                    spacing: 10
+
+                    Button {
+                        Layout.preferredWidth: 110
+                        Layout.preferredHeight: 38
+                        text: Strings.tr(settingsWindow.language, "reload")
+                        onClicked: settingsWindow.appController.refreshBindableWindows()
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Button {
+                        Layout.preferredWidth: 100
+                        Layout.preferredHeight: 38
+                        text: Strings.tr(settingsWindow.language, "cancel")
+                        onClicked: settingsWindow.appController.cancelBindWindow()
+                    }
+
+                    Button {
+                        Layout.preferredWidth: 140
+                        Layout.preferredHeight: 38
+                        enabled: settingsWindow.appController.selectedBindWindowIndex >= 0
+                        text: Strings.tr(settingsWindow.language, "bindSelectedWindow")
+                        onClicked: settingsWindow.appController.bindSelectedWindow()
+                    }
                 }
             }
         }

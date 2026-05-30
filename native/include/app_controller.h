@@ -10,6 +10,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QStringList>
+#include <QVariantList>
 
 class QAction;
 class QApplication;
@@ -47,6 +48,8 @@ class AppController : public QObject {
     Q_PROPERTY(QString activeWindowMode READ activeWindowMode NOTIFY stateChanged)
     Q_PROPERTY(QString activeExeName READ activeExeName NOTIFY stateChanged)
     Q_PROPERTY(bool bindInProgress READ bindInProgress NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList bindWindowCandidates READ bindWindowCandidates NOTIFY bindCandidatesChanged)
+    Q_PROPERTY(int selectedBindWindowIndex READ selectedBindWindowIndex WRITE setSelectedBindWindowIndex NOTIFY bindCandidatesChanged)
     Q_PROPERTY(bool appEnabled READ appEnabled NOTIFY stateChanged)
     Q_PROPERTY(QString uiLanguage READ uiLanguage WRITE setUiLanguage NOTIFY stateChanged)
     Q_PROPERTY(float yawGain READ yawGain WRITE setYawGain NOTIFY profileChanged)
@@ -104,6 +107,8 @@ public:
     QString activeWindowMode() const { return m_activeWindowMode; }
     QString activeExeName() const { return m_activeExeName; }
     bool bindInProgress() const { return m_bindInProgress; }
+    QVariantList bindWindowCandidates() const { return m_bindWindowCandidates; }
+    int selectedBindWindowIndex() const { return m_selectedBindWindowIndex; }
     bool appEnabled() const { return m_appEnabled; }
     QString uiLanguage() const { return m_appState.uiLanguage; }
     float yawGain() const { return static_cast<float>(m_selectedProfile.yawGain); }
@@ -145,6 +150,7 @@ public:
     void setSimYaw(float value);
     void setSimPitch(float value);
     void setSimLateral(float value);
+    void setSelectedBindWindowIndex(int value);
 
 public slots:
     void openSettings();
@@ -153,6 +159,9 @@ public slots:
     void disableApp();
     void saveSelectedProfile();
     void bindCurrentWindow();
+    void refreshBindableWindows();
+    void bindSelectedWindow();
+    void cancelBindWindow();
     void quitApplication();
     void resetSimulator();
 
@@ -161,12 +170,12 @@ signals:
     void cueChanged();
     void profileChanged();
     void profilesChanged();
+    void bindCandidatesChanged();
 
 private:
     void tick();
     void persistAppState();
     void advanceFlowPhase(double timestampMs, float cueEnergy);
-    void scanForBindableWindow();
     void finishBindWindow(const WindowInfo &window);
     void failBindWindow(const QString &statusText, const QString &progressText);
     void restoreSettingsWindow();
@@ -196,6 +205,9 @@ private:
     QString m_activeProfileName;
     QString m_activeWindowMode = QStringLiteral("idle");
     QString m_activeExeName;
+    QVector<WindowInfo> m_bindCandidateWindows;
+    QVariantList m_bindWindowCandidates;
+    int m_selectedBindWindowIndex = -1;
     bool m_overlayVisible = false;
     int m_overlayX = 0;
     int m_overlayY = 0;
@@ -220,7 +232,6 @@ private:
     bool m_appEnabled = true;
     bool m_advancedVisible = false;
     bool m_bindInProgress = false;
-    int m_bindScanAttemptsRemaining = 0;
 };
 
 #endif

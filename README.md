@@ -93,7 +93,7 @@ The canonical native project entry is `native/ComfortCues.pro`.
 
 1. Build and deploy the native app.
 2. Launch Counter-Strike 2 and keep its window visible.
-3. Alt-Tab back to the app and click `Bind Current Window`.
+3. Alt-Tab back to the app, click `Choose Window`, select the game from the list, then click `Bind selected`.
 4. Enable `Debug / Calibration` so the edge cue becomes obvious.
 5. Go back to CS2 and move the camera left and right to confirm the overlay is active.
 6. Turn off `Debug / Calibration` once confirmed and use the lighter cue for actual play.

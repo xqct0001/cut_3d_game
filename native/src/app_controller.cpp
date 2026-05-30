@@ -14,16 +14,14 @@
 #include <QStyle>
 #include <QSystemTrayIcon>
 #include <QTimer>
+#include <QVariantMap>
 
+#include <algorithm>
 #include <cmath>
 
 namespace {
 
 constexpr float kTau = 6.28318530717958647692f;
-constexpr int kBindScanAttempts = 25;
-constexpr int kBindScanInitialDelayMs = 350;
-constexpr int kBindScanIntervalMs = 200;
-
 QString legacyAppStatePath()
 {
     return QDir(QCoreApplication::applicationDirPath()).filePath("profiles/app-state.json");
@@ -75,6 +73,22 @@ QString windowDebugLine(const WindowInfo &window)
         .arg(window.rect.width)
         .arg(window.rect.height)
         .arg(window.reason);
+}
+
+QVariantMap bindCandidateMap(const WindowInfo &window, int index)
+{
+    QVariantMap item;
+    item.insert(QStringLiteral("index"), index);
+    item.insert(QStringLiteral("title"), window.title.isEmpty() ? window.exeName : window.title);
+    item.insert(QStringLiteral("exeName"), window.exeName);
+    item.insert(QStringLiteral("windowClass"), window.windowClass);
+    item.insert(QStringLiteral("mode"), window.mode);
+    item.insert(QStringLiteral("supported"), window.supported);
+    item.insert(QStringLiteral("score"), window.selectionScore);
+    item.insert(QStringLiteral("minimized"), window.minimized);
+    item.insert(QStringLiteral("reason"), window.reason);
+    item.insert(QStringLiteral("rect"), QStringLiteral("%1x%2").arg(window.rect.width).arg(window.rect.height));
+    return item;
 }
 
 QString smokeProgressPath()
@@ -406,68 +420,91 @@ void AppController::bindCurrentWindow()
         return;
     }
 
-    if (m_settingsWindow != nullptr) {
-        m_bindInProgress = true;
-        m_bindScanAttemptsRemaining = kBindScanAttempts;
-        m_statusText = "Binding: scanning visible windows for a game.";
-        emit stateChanged();
-        appendRuntimeProgress("app_controller: bind scan started");
-        QTimer::singleShot(kBindScanInitialDelayMs, this, &AppController::scanForBindableWindow);
-        return;
-    }
-
-    const std::optional<WindowInfo> window = m_runtime.bestVisibleWindow();
-    if (!window.has_value()) {
-        failBindWindow("Bind failed: no visible game window found.",
-                       "app_controller: bind failed (no visible window)");
-        return;
-    }
-
-    finishBindWindow(*window);
+    m_bindInProgress = true;
+    m_statusText = "Binding: choose a window to bind.";
+    appendRuntimeProgress("app_controller: manual bind started");
+    refreshBindableWindows();
+    restoreSettingsWindow();
+    emit stateChanged();
 }
 
-void AppController::scanForBindableWindow()
+void AppController::refreshBindableWindows()
+{
+    QVector<WindowInfo> windows = m_runtime.visibleWindows();
+    std::sort(windows.begin(), windows.end(), [](const WindowInfo &left, const WindowInfo &right) {
+        if (left.supported != right.supported) {
+            return left.supported;
+        }
+        if (left.selectionScore != right.selectionScore) {
+            return left.selectionScore > right.selectionScore;
+        }
+        const long long leftArea = static_cast<long long>(left.rect.width) * static_cast<long long>(left.rect.height);
+        const long long rightArea = static_cast<long long>(right.rect.width) * static_cast<long long>(right.rect.height);
+        return leftArea > rightArea;
+    });
+
+    m_bindCandidateWindows.clear();
+    m_bindWindowCandidates.clear();
+    const int limit = qMin(windows.size(), 24);
+    appendRuntimeProgress(QString("app_controller: manual bind candidates=%1").arg(windows.size()));
+    for (int i = 0; i < limit; ++i) {
+        const WindowInfo &window = windows.at(i);
+        m_bindCandidateWindows.append(window);
+        m_bindWindowCandidates.append(bindCandidateMap(window, i));
+        appendRuntimeProgress(QString("app_controller: manual candidate[%1] %2").arg(i).arg(windowDebugLine(window)));
+    }
+
+    m_selectedBindWindowIndex = m_bindCandidateWindows.isEmpty() ? -1 : 0;
+    if (m_bindCandidateWindows.isEmpty()) {
+        m_statusText = "Binding: no visible windows found.";
+    } else {
+        m_statusText = "Binding: choose a window to bind.";
+    }
+    emit bindCandidatesChanged();
+    emit stateChanged();
+}
+
+void AppController::setSelectedBindWindowIndex(int value)
+{
+    if (value < -1 || value >= m_bindCandidateWindows.size()) {
+        return;
+    }
+    if (m_selectedBindWindowIndex == value) {
+        return;
+    }
+    m_selectedBindWindowIndex = value;
+    emit bindCandidatesChanged();
+}
+
+void AppController::bindSelectedWindow()
 {
     if (!m_bindInProgress) {
         return;
     }
-
-    const bool shouldLogCandidates = m_bindScanAttemptsRemaining == kBindScanAttempts;
-    if (shouldLogCandidates) {
-        const QVector<WindowInfo> windows = m_runtime.visibleWindows();
-        appendRuntimeProgress(QString("app_controller: bind scan candidates=%1").arg(windows.size()));
-        const int limit = qMin(windows.size(), 12);
-        for (int i = 0; i < limit; ++i) {
-            appendRuntimeProgress(QString("app_controller: candidate[%1] %2").arg(i).arg(windowDebugLine(windows.at(i))));
-        }
-    }
-
-    const std::optional<WindowInfo> window = m_runtime.bestVisibleWindow();
-    if (window.has_value() && window->supported) {
-        appendRuntimeProgress(QString("app_controller: bind selected %1").arg(windowDebugLine(*window)));
-        finishBindWindow(*window);
+    if (m_selectedBindWindowIndex < 0 || m_selectedBindWindowIndex >= m_bindCandidateWindows.size()) {
+        failBindWindow("Bind failed: no selected window.",
+                       "app_controller: manual bind failed (no selected window)");
         return;
     }
 
-    --m_bindScanAttemptsRemaining;
-    if (m_bindScanAttemptsRemaining > 0) {
-        QTimer::singleShot(kBindScanIntervalMs, this, &AppController::scanForBindableWindow);
+    const WindowInfo window = m_bindCandidateWindows.at(m_selectedBindWindowIndex);
+    appendRuntimeProgress(QString("app_controller: manual bind selected %1").arg(windowDebugLine(window)));
+    finishBindWindow(window);
+}
+
+void AppController::cancelBindWindow()
+{
+    if (!m_bindInProgress) {
         return;
     }
-
-    if (window.has_value()) {
-        m_activeWindowTitle = window->title;
-        m_activeWindowMode = window->mode;
-        m_activeExeName = window->exeName;
-        appendRuntimeProgress(QString("app_controller: bind best unsupported %1").arg(windowDebugLine(*window)));
-        failBindWindow(QString("Bind failed: detected window is too small or unavailable (%1).").arg(window->exeName),
-                       QString("app_controller: bind scan failed (unsupported visible window: %1 - %2)")
-                           .arg(window->exeName, window->reason));
-        return;
-    }
-
-    failBindWindow("Bind failed: no visible game window found.",
-                   "app_controller: bind scan failed (no visible window)");
+    m_bindInProgress = false;
+    m_bindCandidateWindows.clear();
+    m_bindWindowCandidates.clear();
+    m_selectedBindWindowIndex = -1;
+    m_statusText = "Ready.";
+    emit bindCandidatesChanged();
+    emit stateChanged();
+    appendRuntimeProgress("app_controller: manual bind canceled");
 }
 
 void AppController::finishBindWindow(const WindowInfo &window)
@@ -497,9 +534,13 @@ void AppController::finishBindWindow(const WindowInfo &window)
     m_statusText = QString("Bound current window to %1 profile: %2").arg(savedProfileName, window.exeName);
     m_activeProfileName = savedProfileName;
     m_bindInProgress = false;
+    m_bindCandidateWindows.clear();
+    m_bindWindowCandidates.clear();
+    m_selectedBindWindowIndex = -1;
     restoreSettingsWindow();
     emit profilesChanged();
     emit profileChanged();
+    emit bindCandidatesChanged();
     emit stateChanged();
     appendRuntimeProgress(QString("app_controller: bind succeeded (%1)").arg(window.exeName));
 }
@@ -508,7 +549,11 @@ void AppController::failBindWindow(const QString &statusText, const QString &pro
 {
     m_statusText = statusText;
     m_bindInProgress = false;
+    m_bindCandidateWindows.clear();
+    m_bindWindowCandidates.clear();
+    m_selectedBindWindowIndex = -1;
     restoreSettingsWindow();
+    emit bindCandidatesChanged();
     emit stateChanged();
     appendRuntimeProgress(progressText);
 }
