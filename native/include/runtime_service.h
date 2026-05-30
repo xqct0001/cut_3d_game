@@ -38,6 +38,7 @@ private:
     SimulationState m_simulation;
     CCSignalProcessorState m_signalState;
     CCCueEngineState m_cueState;
+    mutable std::optional<WindowInfo> m_lastDetectedWindow;
 };
 
 #endif

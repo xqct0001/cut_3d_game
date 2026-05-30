@@ -90,6 +90,21 @@ def test_runtime_shows_overlay_for_matched_window():
     assert "Active:" in view.status_text
 
 
+def test_foreground_window_falls_back_to_last_detected_game_window():
+    game = _window("Demo", "demo.exe")
+    runtime = RuntimeService(
+        tracker=FakeTracker([game, None]),
+        input_source=FakeInputSource([InputSnapshot(mouse_dx=120, raw_input_active=True)]),
+        profile_store=_store(),
+        signal_processor=SignalProcessor(smoothing=1.0),
+        cue_engine=CueEngine(),
+    )
+
+    runtime.tick(16.0, _store().default_profile)
+
+    assert runtime.foreground_window() == game
+
+
 def test_runtime_uses_simulator_without_window():
     runtime = RuntimeService(
         tracker=FakeTracker([None]),

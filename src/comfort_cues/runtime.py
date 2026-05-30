@@ -24,6 +24,7 @@ class RuntimeService:
         self._signal_processor = signal_processor
         self._cue_engine = cue_engine
         self._simulation = SimulationState()
+        self._last_detected_window: WindowInfo | None = None
 
     @property
     def simulation(self) -> SimulationState:
@@ -46,6 +47,7 @@ class RuntimeService:
                 active_window_title="",
                 support_mode="idle",
             )
+        self._last_detected_window = window
 
         if not window.supported:
             self._reset_engines()
@@ -107,7 +109,11 @@ class RuntimeService:
         )
 
     def foreground_window(self) -> WindowInfo | None:
-        return self._tracker.snapshot()
+        window = self._tracker.snapshot()
+        if window is not None:
+            self._last_detected_window = window
+            return window
+        return self._last_detected_window
 
     def _reset_engines(self) -> None:
         self._signal_processor.reset()

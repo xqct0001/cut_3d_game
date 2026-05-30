@@ -26,6 +26,7 @@ RuntimeViewState RuntimeService::tick(double timestampMs, const Profile &preview
         reset();
         return emptyView(primaryMonitorRect(), "Idle: no foreground game window detected.", "", "", "idle");
     }
+    m_lastDetectedWindow = window;
     if (!window->supported) {
         reset();
         if (window->mode == "unsupported-ratio") {
@@ -102,7 +103,12 @@ std::optional<WindowInfo> RuntimeService::foregroundWindow() const
     if (m_tracker == nullptr) {
         return std::nullopt;
     }
-    return m_tracker->snapshot();
+    const std::optional<WindowInfo> window = m_tracker->snapshot();
+    if (window.has_value()) {
+        m_lastDetectedWindow = window;
+        return window;
+    }
+    return m_lastDetectedWindow;
 }
 
 Rect RuntimeService::primaryMonitorRect() const
