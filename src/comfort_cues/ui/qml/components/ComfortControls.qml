@@ -7,36 +7,35 @@ Rectangle {
     property var controller
     property var strings
     property string language: "en"
-    property color panelColor: "#FFFFFF"
-    property color borderColor: "#D7DDD8"
-    property color textColor: "#1E252B"
-    property color mutedColor: "#65706A"
-    property color greenColor: "#256B4D"
+    property color panelColor: "#F7F8F4"
+    property color borderColor: "#D7DED8"
+    property color textColor: "#172023"
+    property color mutedColor: "#6E828A"
+    property color greenColor: "#238D65"
 
     Layout.fillWidth: true
-    radius: 8
+    radius: 12
     color: panelColor
     border.color: borderColor
     border.width: 1
-    implicitHeight: comfortLayout.implicitHeight + 32
+    implicitHeight: comfortLayout.implicitHeight + 30
 
     ColumnLayout {
         id: comfortLayout
         anchors.fill: parent
-        anchors.margins: 16
+        anchors.margins: 15
         spacing: 12
 
         RowLayout {
             Layout.fillWidth: true
             spacing: 10
 
-            Label { text: strings.tr(language, "comfort"); color: textColor; font.pixelSize: 17; font.bold: true }
+            Label { text: strings.tr(language, "comfort"); color: textColor; font.pixelSize: 18; font.bold: true }
             Item { Layout.fillWidth: true }
             Label {
-                text: controller.overlayVisible ? strings.tr(language, "overlayOn") : strings.tr(language, "overlayIdle")
-                color: controller.overlayVisible ? greenColor : mutedColor
+                text: strings.tr(language, "supportedHint")
+                color: mutedColor
                 font.pixelSize: 12
-                font.bold: true
             }
         }
 
@@ -48,6 +47,7 @@ Rectangle {
             valueText: strings.formatNumber(controller.maxOpacity)
             textColor: textColor
             mutedColor: mutedColor
+            accentColor: greenColor
             onMoved: controller.maxOpacity = value
         }
 
@@ -59,6 +59,7 @@ Rectangle {
             valueText: strings.formatNumber(controller.yawGain)
             textColor: textColor
             mutedColor: mutedColor
+            accentColor: greenColor
             onMoved: controller.yawGain = value
         }
 
@@ -70,6 +71,7 @@ Rectangle {
             valueText: strings.formatNumber(controller.pitchGain)
             textColor: textColor
             mutedColor: mutedColor
+            accentColor: greenColor
             onMoved: controller.pitchGain = value
         }
     }

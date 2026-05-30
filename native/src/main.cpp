@@ -10,6 +10,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQmlError>
+#include <QQuickStyle>
 #include <QQuickWindow>
 namespace {
 
@@ -171,6 +172,7 @@ LaunchOverrides parseLaunchOverrides(const QStringList &arguments)
 
 int main(int argc, char *argv[])
 {
+    QQuickStyle::setStyle("Basic");
     QApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
 

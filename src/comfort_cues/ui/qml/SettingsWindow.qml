@@ -9,23 +9,24 @@ Window {
     id: settingsWindow
     objectName: "settingsWindow"
     width: 760
-    height: 640
+    height: 560
     minimumWidth: 720
-    minimumHeight: 560
+    minimumHeight: 520
     visible: false
     title: "Comfort Cues"
     color: pageColor
 
-    readonly property color pageColor: "#F6F7F4"
-    readonly property color panelColor: "#FFFFFF"
-    readonly property color borderColor: "#D7DDD8"
-    readonly property color textColor: "#1E252B"
-    readonly property color mutedColor: "#65706A"
-    readonly property color greenColor: "#256B4D"
-    readonly property color blueColor: "#2F5E85"
-    readonly property color warningColor: "#8A5B20"
-    readonly property color lineColor: "#E4E8E2"
-    readonly property string language: controller.uiLanguage === "zh" ? "zh" : "en"
+    readonly property color pageColor: "#202426"
+    readonly property color panelColor: "#F7F8F4"
+    readonly property color borderColor: "#D7DED8"
+    readonly property color textColor: "#172023"
+    readonly property color mutedColor: "#6E828A"
+    readonly property color greenColor: "#238D65"
+    readonly property color blueColor: "#286B78"
+    readonly property color warningColor: "#A66E18"
+    readonly property color lineColor: "#DCE3DE"
+    readonly property var appController: controller
+    readonly property string language: appController.uiLanguage === "zh" ? "zh" : "en"
     readonly property var languageOptions: [
         { labelEn: "English", labelZh: "English", value: "en" },
         { labelEn: "Chinese", labelZh: "中文", value: "zh" }
@@ -36,38 +37,34 @@ Window {
         settingsWindow.hide()
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: pageColor
-    }
-
     ScrollView {
         id: settingsScrollView
         anchors.fill: parent
         clip: true
-        leftPadding: 20
-        topPadding: 18
-        rightPadding: 20
-        bottomPadding: 20
+        leftPadding: 24
+        topPadding: 22
+        rightPadding: 24
+        bottomPadding: 22
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+        background: Rectangle { color: pageColor }
 
         ColumnLayout {
             width: settingsScrollView.availableWidth
-            spacing: 12
+            spacing: 14
 
             StatusHeader {
-                controller: controller
+                controller: settingsWindow.appController
                 strings: Strings
                 language: settingsWindow.language
                 languageOptions: settingsWindow.languageOptions
-                textColor: settingsWindow.textColor
-                mutedColor: settingsWindow.mutedColor
-                greenColor: settingsWindow.greenColor
+                textColor: "#F7F8F4"
+                mutedColor: "#A9B8B8"
+                greenColor: "#78D6A4"
             }
 
             SessionPanel {
-                controller: controller
+                controller: settingsWindow.appController
                 strings: Strings
                 language: settingsWindow.language
                 panelColor: settingsWindow.panelColor
@@ -81,7 +78,7 @@ Window {
             }
 
             ComfortControls {
-                controller: controller
+                controller: settingsWindow.appController
                 strings: Strings
                 language: settingsWindow.language
                 panelColor: settingsWindow.panelColor
@@ -92,7 +89,7 @@ Window {
             }
 
             ProfilePanel {
-                controller: controller
+                controller: settingsWindow.appController
                 strings: Strings
                 language: settingsWindow.language
                 panelColor: settingsWindow.panelColor
@@ -102,7 +99,7 @@ Window {
             }
 
             AdvancedPanel {
-                controller: controller
+                controller: settingsWindow.appController
                 strings: Strings
                 language: settingsWindow.language
                 panelColor: settingsWindow.panelColor
@@ -110,6 +107,53 @@ Window {
                 textColor: settingsWindow.textColor
                 mutedColor: settingsWindow.mutedColor
                 lineColor: settingsWindow.lineColor
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        visible: settingsWindow.appController.bindInProgress
+        color: "#99000000"
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 360
+            implicitHeight: scanLayout.implicitHeight + 34
+            radius: 10
+            color: "#F7F8F4"
+            border.color: "#78D6A4"
+            border.width: 1
+
+            ColumnLayout {
+                id: scanLayout
+                anchors.fill: parent
+                anchors.margins: 17
+                spacing: 10
+
+                Label {
+                    Layout.fillWidth: true
+                    text: Strings.tr(settingsWindow.language, "scanDialogTitle")
+                    color: settingsWindow.textColor
+                    font.pixelSize: 22
+                    font.bold: true
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: Strings.tr(settingsWindow.language, "scanDialogBody")
+                    color: settingsWindow.mutedColor
+                    font.pixelSize: 13
+                    wrapMode: Text.WordWrap
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Label { text: "1 " + Strings.tr(settingsWindow.language, "scanStepHide"); color: settingsWindow.greenColor; font.bold: true }
+                    Label { text: "2 " + Strings.tr(settingsWindow.language, "scanStepFocus"); color: settingsWindow.textColor; font.bold: true }
+                    Label { text: "3 " + Strings.tr(settingsWindow.language, "scanStepBind"); color: settingsWindow.textColor; font.bold: true }
+                }
             }
         }
     }

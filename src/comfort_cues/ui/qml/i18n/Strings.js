@@ -3,29 +3,33 @@
 var en = {
     language: "Language",
     subtitle: "Comfort overlay for windowed 3D games",
-    readyTitle: "Ready",
-    pausedTitle: "Paused",
-    setupTitle: "Waiting for a game window",
-    trackingTitle: "Tracking game window",
-    unsupportedTitle: "Switch game to borderless/windowed",
+    waitingTitle: "No game detected",
+    trackingTitle: "Game detected",
+    unsupportedTitle: "Unsupported window",
+    pausedTitle: "Overlay paused",
+    scanningTitle: "Detecting game",
     appOn: "On",
     appOff: "Off",
     overlayOn: "Overlay active",
     overlayIdle: "Overlay idle",
-    enable: "Enable",
-    disable: "Disable",
-    bindWindow: "Bind current game",
-    showDebug: "Show calibration",
-    hideDebug: "Hide calibration",
-    stepEnable: "Enable",
-    stepGame: "Open game",
-    stepBind: "Bind window",
-    currentWindow: "Current window",
-    mode: "Mode",
+    enable: "Enable overlay",
+    disable: "Disable overlay",
+    bindWindow: "Detect game",
+    cancel: "Cancel",
+    showDebug: "Show preview",
+    hideDebug: "Hide preview",
+    currentWindow: "Current game",
     executable: "Executable",
-    noWindow: "No game window detected",
-    exeNA: "Not available",
-    profile: "Game profile",
+    noWindow: "--",
+    exeNA: "--",
+    scanHint: "The window will hide. Switch back to your game within 5 seconds.",
+    scanDialogTitle: "Detecting game",
+    scanDialogBody: "Switch to the game window. Comfort Cues will bind it automatically.",
+    scanStepHide: "Hide window",
+    scanStepFocus: "Wait for game foreground",
+    scanStepBind: "Bind profile",
+    supportedHint: "Supports 16:9 windowed / borderless games",
+    profile: "Profile",
     activeProfile: "Active profile",
     none: "None",
     reload: "Reload",
@@ -36,7 +40,7 @@ var en = {
     verticalSensitivity: "Vertical sensitivity",
     calmInput: "Input calm",
     advanced: "Advanced",
-    showControls: "Show controls",
+    showControls: "Advanced settings",
     mouse: "Mouse",
     gamepad: "Gamepad",
     safeMode: "Safe mode",
@@ -53,7 +57,7 @@ var en = {
     borderless: "Borderless",
     windowed: "Windowed",
     unsupportedRatio: "Unsupported ratio",
-    unsupportedFullscreen: "Unsupported fullscreen",
+    unsupportedFullscreen: "Fullscreen not supported",
     simulatorMode: "Simulator",
     waiting: "Waiting",
     disabled: "Disabled",
@@ -63,6 +67,7 @@ var en = {
     savedProfilePrefix: "Saved profile to ",
     bindFailedNoWindow: "Bind failed: no foreground game window detected.",
     bindFailedPrefix: "Bind failed: ",
+    bindingPrefix: "Binding: ",
     boundGenericPrefix: "Bound current window to ",
     activePrefix: "Active: ",
     unsupportedRatioPrefix: "Unsupported ratio: ",
@@ -73,29 +78,33 @@ var en = {
 
 var zh = {
     language: "语言",
-    subtitle: "面向窗口化 3D 游戏的舒适覆盖层",
-    readyTitle: "已就绪",
-    pausedTitle: "已暂停",
-    setupTitle: "等待游戏窗口",
-    trackingTitle: "正在跟踪游戏窗口",
-    unsupportedTitle: "请切换到无边框或窗口化",
-    appOn: "开启",
-    appOff: "关闭",
+    subtitle: "游戏舒适度覆盖层",
+    waitingTitle: "未识别游戏",
+    trackingTitle: "已识别游戏",
+    unsupportedTitle: "窗口不支持",
+    pausedTitle: "覆盖层已关闭",
+    scanningTitle: "正在识别游戏",
+    appOn: "已开启",
+    appOff: "已关闭",
     overlayOn: "覆盖层运行中",
     overlayIdle: "覆盖层待机",
-    enable: "开启",
-    disable: "关闭",
-    bindWindow: "绑定当前游戏",
-    showDebug: "显示校准",
-    hideDebug: "隐藏校准",
-    stepEnable: "开启",
-    stepGame: "打开游戏",
-    stepBind: "绑定窗口",
-    currentWindow: "当前窗口",
-    mode: "模式",
+    enable: "开启覆盖层",
+    disable: "关闭覆盖层",
+    bindWindow: "识别游戏",
+    cancel: "取消",
+    showDebug: "显示预览",
+    hideDebug: "隐藏预览",
+    currentWindow: "当前游戏",
     executable: "程序",
-    noWindow: "未检测到游戏窗口",
-    exeNA: "不可用",
+    noWindow: "--",
+    exeNA: "--",
+    scanHint: "点击后窗口会自动隐藏，请在 5 秒内切回游戏。",
+    scanDialogTitle: "正在识别游戏",
+    scanDialogBody: "请切回游戏窗口，Comfort Cues 会自动绑定。",
+    scanStepHide: "隐藏窗口",
+    scanStepFocus: "等待游戏前台",
+    scanStepBind: "绑定配置",
+    supportedHint: "支持窗口化 / 无边框 16:9 游戏",
     profile: "游戏配置",
     activeProfile: "生效配置",
     none: "无",
@@ -106,8 +115,8 @@ var zh = {
     turnSensitivity: "转向灵敏度",
     verticalSensitivity: "垂直灵敏度",
     calmInput: "输入稳定",
-    advanced: "高级",
-    showControls: "显示控件",
+    advanced: "高级设置",
+    showControls: "展开高级设置",
     mouse: "鼠标",
     gamepad: "手柄",
     safeMode: "安全模式",
@@ -124,17 +133,18 @@ var zh = {
     borderless: "无边框",
     windowed: "窗口化",
     unsupportedRatio: "比例不支持",
-    unsupportedFullscreen: "不支持独占全屏",
+    unsupportedFullscreen: "独占全屏不支持",
     simulatorMode: "模拟器",
-    waiting: "等待",
+    waiting: "等待中",
     disabled: "已关闭",
     ready: "就绪。",
     runningBg: "Comfort Cues 正在后台运行。",
     disabledStatus: "Comfort Cues 已关闭。",
     savedProfilePrefix: "已保存配置到 ",
-    bindFailedNoWindow: "绑定失败：未检测到前台游戏窗口。",
-    bindFailedPrefix: "绑定失败：",
-    boundGenericPrefix: "已将当前窗口绑定到 ",
+    bindFailedNoWindow: "识别失败：没有检测到前台游戏窗口。",
+    bindFailedPrefix: "识别失败：",
+    bindingPrefix: "正在识别：",
+    boundGenericPrefix: "已绑定到 ",
     activePrefix: "当前：",
     unsupportedRatioPrefix: "比例不支持：",
     unsupportedWindowPrefix: "窗口不支持：",
@@ -156,6 +166,7 @@ function translateStatus(language, text) {
     if (text === "Comfort Cues running in background.") return tr(language, "runningBg")
     if (text === "Comfort Cues disabled.") return tr(language, "disabledStatus")
     if (text === "Bind failed: no foreground game window detected.") return tr(language, "bindFailedNoWindow")
+    if (text.indexOf("Binding: ") === 0) return tr(language, "bindingPrefix") + text.substring("Binding: ".length)
     if (text.indexOf("Saved profile to ") === 0) return tr(language, "savedProfilePrefix") + text.substring("Saved profile to ".length)
     if (text.indexOf("Bound current window to ") === 0) return tr(language, "boundGenericPrefix") + text.substring("Bound current window to ".length)
     if (text.indexOf("Bind failed: ") === 0) return tr(language, "bindFailedPrefix") + text.substring("Bind failed: ".length)
@@ -179,18 +190,19 @@ function modeSummary(language, mode) {
 }
 
 function sessionTitle(language, controller) {
+    if (controller.bindInProgress) return tr(language, "scanningTitle")
     if (!controller.appEnabled) return tr(language, "pausedTitle")
     if (controller.activeWindowMode === "unsupported-ratio" || controller.activeWindowMode === "exclusive-or-unknown") return tr(language, "unsupportedTitle")
-    if (controller.overlayVisible) return tr(language, "trackingTitle")
-    if (controller.activeWindowTitle.length > 0) return tr(language, "readyTitle")
-    return tr(language, "setupTitle")
+    if (controller.activeWindowTitle.length > 0 || controller.overlayVisible) return tr(language, "trackingTitle")
+    return tr(language, "waitingTitle")
 }
 
 function sessionColorKey(controller) {
+    if (controller.bindInProgress) return "blue"
     if (!controller.appEnabled) return "muted"
     if (controller.activeWindowMode === "unsupported-ratio" || controller.activeWindowMode === "exclusive-or-unknown") return "warning"
-    if (controller.overlayVisible) return "green"
-    return "blue"
+    if (controller.activeWindowTitle.length > 0 || controller.overlayVisible) return "green"
+    return "muted"
 }
 
 function windowSummary(language, controller) {

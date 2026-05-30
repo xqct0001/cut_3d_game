@@ -8,21 +8,21 @@ RowLayout {
     property var strings
     property var languageOptions: []
     property string language: "en"
-    property color textColor: "#1E252B"
-    property color mutedColor: "#65706A"
-    property color greenColor: "#256B4D"
+    property color textColor: "#F7F8F4"
+    property color mutedColor: "#A9B8B8"
+    property color greenColor: "#78D6A4"
 
     Layout.fillWidth: true
-    spacing: 12
+    spacing: 14
 
     ColumnLayout {
         Layout.fillWidth: true
-        spacing: 2
+        spacing: 3
 
         Label {
             text: "Comfort Cues"
             color: textColor
-            font.pixelSize: 24
+            font.pixelSize: 30
             font.bold: true
         }
 
@@ -30,18 +30,18 @@ RowLayout {
             Layout.fillWidth: true
             text: strings.tr(language, "subtitle")
             color: mutedColor
-            font.pixelSize: 13
+            font.pixelSize: 14
             elide: Text.ElideRight
         }
     }
 
     Rectangle {
-        radius: 8
-        color: controller.appEnabled ? "#E8F3EC" : "#ECEFEC"
-        border.color: controller.appEnabled ? "#B9D7C4" : "#D2D8D2"
+        radius: 15
+        color: controller.appEnabled ? "#263A34" : "#33383A"
+        border.color: controller.appEnabled ? "#78D6A4" : "#58666A"
         border.width: 1
-        implicitWidth: appPillLabel.implicitWidth + 18
-        implicitHeight: 30
+        implicitWidth: appPillLabel.implicitWidth + 22
+        implicitHeight: 32
 
         Label {
             id: appPillLabel
@@ -56,7 +56,7 @@ RowLayout {
     ComboBox {
         id: languageCombo
         objectName: "languageCombo"
-        implicitWidth: 120
+        implicitWidth: 118
         model: languageOptions
         textRole: language === "zh" ? "labelZh" : "labelEn"
         currentIndex: language === "zh" ? 1 : 0

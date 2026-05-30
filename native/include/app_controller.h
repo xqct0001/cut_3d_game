@@ -46,6 +46,7 @@ class AppController : public QObject {
     Q_PROPERTY(QString activeProfileName READ activeProfileName NOTIFY stateChanged)
     Q_PROPERTY(QString activeWindowMode READ activeWindowMode NOTIFY stateChanged)
     Q_PROPERTY(QString activeExeName READ activeExeName NOTIFY stateChanged)
+    Q_PROPERTY(bool bindInProgress READ bindInProgress NOTIFY stateChanged)
     Q_PROPERTY(bool appEnabled READ appEnabled NOTIFY stateChanged)
     Q_PROPERTY(QString uiLanguage READ uiLanguage WRITE setUiLanguage NOTIFY stateChanged)
     Q_PROPERTY(float yawGain READ yawGain WRITE setYawGain NOTIFY profileChanged)
@@ -102,6 +103,7 @@ public:
     QString activeProfileName() const { return m_activeProfileName; }
     QString activeWindowMode() const { return m_activeWindowMode; }
     QString activeExeName() const { return m_activeExeName; }
+    bool bindInProgress() const { return m_bindInProgress; }
     bool appEnabled() const { return m_appEnabled; }
     QString uiLanguage() const { return m_appState.uiLanguage; }
     float yawGain() const { return static_cast<float>(m_selectedProfile.yawGain); }
@@ -164,6 +166,10 @@ private:
     void tick();
     void persistAppState();
     void advanceFlowPhase(double timestampMs, float cueEnergy);
+    void scanForBindableWindow();
+    void finishBindWindow(const WindowInfo &window);
+    void failBindWindow(const QString &statusText, const QString &progressText);
+    void restoreSettingsWindow();
     void setDisabledView();
     void refreshTrayIcon();
 
@@ -213,6 +219,8 @@ private:
     bool m_debugOverlayEnabled = false;
     bool m_appEnabled = true;
     bool m_advancedVisible = false;
+    bool m_bindInProgress = false;
+    int m_bindScanAttemptsRemaining = 0;
 };
 
 #endif

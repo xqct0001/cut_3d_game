@@ -20,6 +20,9 @@
 namespace {
 
 constexpr float kTau = 6.28318530717958647692f;
+constexpr int kBindScanAttempts = 25;
+constexpr int kBindScanInitialDelayMs = 350;
+constexpr int kBindScanIntervalMs = 200;
 
 QString legacyAppStatePath()
 {
@@ -384,43 +387,114 @@ void AppController::saveSelectedProfile()
 
 void AppController::bindCurrentWindow()
 {
+    if (m_bindInProgress) {
+        return;
+    }
+
+    if (m_settingsWindow != nullptr) {
+        m_bindInProgress = true;
+        m_bindScanAttemptsRemaining = kBindScanAttempts;
+        m_statusText = "Binding: switch to the game window within 5 seconds.";
+        m_settingsWindow->hide();
+        emit stateChanged();
+        appendRuntimeProgress("app_controller: bind scan started");
+        QTimer::singleShot(kBindScanInitialDelayMs, this, &AppController::scanForBindableWindow);
+        return;
+    }
+
     const std::optional<WindowInfo> window = m_runtime.foregroundWindow();
     if (!window.has_value()) {
-        m_statusText = "Bind failed: no foreground game window detected.";
-        emit stateChanged();
-        appendRuntimeProgress("app_controller: bind failed (no foreground game window)");
+        failBindWindow("Bind failed: no foreground game window detected.",
+                       "app_controller: bind failed (no foreground game window)");
         return;
     }
 
-    m_activeWindowTitle = window->title;
-    m_activeWindowMode = window->mode;
-    m_activeExeName = window->exeName;
-    if (!window->supported) {
-        m_statusText = QString("Bind failed: %1 - %2").arg(window->exeName, window->reason);
-        emit stateChanged();
-        appendRuntimeProgress(QString("app_controller: bind failed (%1 - %2)").arg(window->exeName, window->reason));
+    finishBindWindow(*window);
+}
+
+void AppController::scanForBindableWindow()
+{
+    if (!m_bindInProgress) {
         return;
     }
 
-    Profile profile = bindingProfileForWindow(m_selectedProfile, *window);
-    appendUniqueNormalized(profile.matchExe, window->exeName);
-    for (const QString &token : titleTokens(window->title)) {
+    const std::optional<WindowInfo> window = m_runtime.foregroundWindow();
+    if (window.has_value() && window->supported) {
+        finishBindWindow(*window);
+        return;
+    }
+
+    --m_bindScanAttemptsRemaining;
+    if (m_bindScanAttemptsRemaining > 0) {
+        QTimer::singleShot(kBindScanIntervalMs, this, &AppController::scanForBindableWindow);
+        return;
+    }
+
+    if (window.has_value()) {
+        m_activeWindowTitle = window->title;
+        m_activeWindowMode = window->mode;
+        m_activeExeName = window->exeName;
+        failBindWindow(QString("Bind failed: no supported game window detected (%1).").arg(window->exeName),
+                       QString("app_controller: bind scan failed (unsupported foreground: %1 - %2)")
+                           .arg(window->exeName, window->reason));
+        return;
+    }
+
+    failBindWindow("Bind failed: no foreground game window detected.",
+                   "app_controller: bind scan failed (no foreground game window)");
+}
+
+void AppController::finishBindWindow(const WindowInfo &window)
+{
+    m_activeWindowTitle = window.title;
+    m_activeWindowMode = window.mode;
+    m_activeExeName = window.exeName;
+    if (!window.supported) {
+        failBindWindow(QString("Bind failed: %1 - %2").arg(window.exeName, window.reason),
+                       QString("app_controller: bind failed (%1 - %2)").arg(window.exeName, window.reason));
+        return;
+    }
+
+    Profile profile = bindingProfileForWindow(m_selectedProfile, window);
+    appendUniqueNormalized(profile.matchExe, window.exeName);
+    for (const QString &token : titleTokens(window.title)) {
         appendUniqueNormalized(profile.matchTitle, token);
     }
-    profile.lastBoundExe = window->exeName.toLower();
-    profile.lastBoundTitle = window->title.toLower();
+    profile.lastBoundExe = window.exeName.toLower();
+    profile.lastBoundTitle = window.title.toLower();
     const QString savedProfileName = profile.name;
     m_profileStore.saveProfile(profile);
     m_profileStore = ProfileStore::load(m_profilesDir);
     m_selectedProfile = m_profileStore.hasProfile(savedProfileName)
         ? m_profileStore.cloneProfile(savedProfileName)
         : m_profileStore.defaultProfile();
-    m_statusText = QString("Bound current window to %1 profile: %2").arg(savedProfileName, window->exeName);
+    m_statusText = QString("Bound current window to %1 profile: %2").arg(savedProfileName, window.exeName);
     m_activeProfileName = savedProfileName;
+    m_bindInProgress = false;
+    restoreSettingsWindow();
     emit profilesChanged();
     emit profileChanged();
     emit stateChanged();
-    appendRuntimeProgress(QString("app_controller: bind succeeded (%1)").arg(window->exeName));
+    appendRuntimeProgress(QString("app_controller: bind succeeded (%1)").arg(window.exeName));
+}
+
+void AppController::failBindWindow(const QString &statusText, const QString &progressText)
+{
+    m_statusText = statusText;
+    m_bindInProgress = false;
+    restoreSettingsWindow();
+    emit stateChanged();
+    appendRuntimeProgress(progressText);
+}
+
+void AppController::restoreSettingsWindow()
+{
+    if (m_settingsWindow == nullptr) {
+        return;
+    }
+    m_settingsWindow->show();
+    m_settingsWindow->raise();
+    m_settingsWindow->requestActivate();
 }
 
 void AppController::quitApplication()
